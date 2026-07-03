@@ -74,15 +74,14 @@
         method="POST"
         enctype="multipart/form-data"
     >
-    <select name="issueType" style="text-align:center; padding: 8px; width: 200px;">
+    <!-- <select name="issueType" style="text-align:center; padding: 8px; width: 200px;">
     	<option value="">Select an option...</option>
     	<option value="potholes">🕳️ Road Damage / Potholes</option>
         <option value="lights">💡 Broken streetlights</option>
         <option value="waste">🗑️ Illegal dumping / Waste</option>
         <option value="flooding ">🚰 Water leak / Flooding </option>
         <option value="Damaged infrastructure">💥 Damaged public facilities</option>
-	</select>
-    
+	</select> -->
     
 
     <label for="location" style="display: block; margin: 10px 0 5px 0;">Location</label>
