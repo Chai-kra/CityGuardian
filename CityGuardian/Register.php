@@ -21,9 +21,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             echo "<script>alert('Email already registered!');</script>";
         } else {
 
+            // Hash the password before saving
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
             // Insert new user
             $stmt = $conn->prepare("INSERT INTO users (email, password) VALUES (?, ?)");
-            $stmt->bind_param("ss", $email, $password);
+            $stmt->bind_param("ss", $email, $hashedPassword);
 
             if ($stmt->execute()) {
                 echo "<script>

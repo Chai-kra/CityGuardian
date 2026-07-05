@@ -6,16 +6,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST["email"];
     $password = $_POST["password"];
 
-    $sql = "SELECT * FROM users WHERE email=? AND password=?";
+    // Find user by email only
+    $sql = "SELECT * FROM users WHERE email=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $email, $password);
+    $stmt->bind_param("s", $email);
     $stmt->execute();
 
     $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
-        header("Location: ReportPage.php");
-        exit();
+    if ($result->num_rows == 1) {
+
+        $user = $result->fetch_assoc();
+
+        // Compare entered password with hashed password
+        if (password_verify($password, $user["password"])) {
+
+            header("Location: ReportPage.php");
+            exit();
+
+        } else {
+            echo "Invalid email or password.";
+        }
+
     } else {
         echo "Invalid email or password.";
     }
@@ -46,8 +58,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
 
             <div class="remember-forgot">
-                <label><input type="checkbox">Remember me</label>
-                <a href="#">Forgot Password?</a>
+                <label><input type="checkbox"> Remember me</label>
+                <a href="forgot_password.php">Forgot Password?</a>
             </div>
 
             <button type="submit" class="btn" >Log In</button>
