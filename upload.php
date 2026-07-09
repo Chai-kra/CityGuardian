@@ -1,6 +1,7 @@
 <?php
 include "db.php";
 require_once "classify.php"; 
+require_once "department_mapping.php";
 
 $issue = null;
 $location = $_POST['location'];
@@ -20,11 +21,11 @@ if(isset($_FILES['image']) && $_FILES['image']['error'] == 0){
 
 $aiDescription = null;
 $aiPriority = null;
-$aiDepartment = "DBKL Engineering Department"; // default agency
+$aiDepartment = "DBKL Engineering Department"; // default fallback
 $aiConfidence = null;
 
 if ($image !== "") {
-    $result = classifyIssue("uploads/" . $image);
+    $result = classifyIssue("uploads/" . $image, $description, $location);
 
     if (isset($result['success'])) {
         $aiDescription = $result['data']['description'] ?? null;
@@ -44,13 +45,14 @@ if ($image !== "") {
             $aiConfidence = round($result['data']['confidence'] * 100, 2); // 0.85 -> 85.00
         };
 
-        // Basic department routing: potholes on federal roads go to JKR
         $aiIssueType = $result['data']['issue'] ?? '';
+        $facilityType = $result['data']['facility_type'] ?? null;
+        $roadType = $result['data']['road_type'] ?? null;
+        $floodSource = $result['data']['flood_source'] ?? null;
         $issue = $aiIssueType;
-        if ($aiIssueType === 'pothole') {
-            // Only relevant if you're passing lat/lng from the form (see note below)
-            // $aiDepartment = checkRoadClassification($lat, $lng) === 'federal' ? 'JKR' : 'DBKL';
-        }
+
+        $aiDepartment = determineDepartment($aiIssueType, $facilityType, $roadType, $floodSource);
+
     } else {
         error_log("AI classification failed: " . json_encode($result));
     }
