@@ -6,7 +6,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST["email"];
     $password = $_POST["password"];
 
-    // Find user by email only
     $sql = "SELECT * FROM users WHERE email=?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
@@ -14,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $result = $stmt->get_result();
 
-    if ($result->num_rows == 1) {
+       if ($result->num_rows == 1) {
 
         $user = $result->fetch_assoc();
 
@@ -54,12 +53,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
             <div class="input-box">
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                <i class='bx bxs-lock-alt' ></i>
+                <i class='bx bx-low-vision' id="eyeicon"></i>
             </div>
 
             <div class="remember-forgot">
-                <label><input type="checkbox"> Remember me</label>
-                <a href="forgot_password.php">Forgot Password?</a>
+                <label><input type="checkbox">Remember me</label>
+                <a href="#">Forgot Password?</a>
             </div>
 
             <button type="submit" class="btn" >Log In</button>
@@ -72,7 +71,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </body>
 
 <script>    
+    let eyeicon = document.getElementById("eyeicon");
+    let password = document.getElementById("password");
 
+    eyeicon.onclick = function() {
+        if (password.type == "password") {
+            password.type = "text";
+            eyeicon.classList.add("bx-show");
+            eyeicon.classList.remove("bx-low-vision");
+        } else {
+            password.type = "password";
+            eyeicon.classList.add("bx-low-vision");
+            eyeicon.classList.remove("bx-show");
+        }
+    }
 
 </script>
 
