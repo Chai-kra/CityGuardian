@@ -75,13 +75,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 
 <div class="input-box">
-<input type="password" name="password" placeholder="Enter your password" required>
-<i class='bx bxs-lock-alt'></i>
+<input type="password" name="password" placeholder="Enter your password" required id="password">
+<i class='bx bx-low-vision' id="eyeicon"></i>
 </div>
 
 <div class="input-box">
-<input type="password" name="confirmPassword" placeholder="Confirm your password" required>
-<i class='bx bxs-lock-alt'></i>
+<input type="password" name="confirmPassword" placeholder="Confirm your password" required id="confirmPassword">
+<i class='bx bx-low-vision' id="eyeicon2"></i>
 </div>
 
 <button type="submit" class="btn">Register</button>
@@ -95,6 +95,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </form>
 
 </div>
+
+<script>
+    let eyeicon = document.getElementById("eyeicon");
+    let eyeicon2 = document.getElementById("eyeicon2");
+    let password = document.getElementById("password");
+    let confirmPassword = document.getElementById("confirmPassword");
+
+    eyeicon.onclick = function() {
+        if (password.type == "password") {
+            password.type = "text";
+            eyeicon.classList.add("bx-show");
+            eyeicon.classList.remove("bx-low-vision");
+        } else {
+            password.type = "password";
+            eyeicon.classList.add("bx-low-vision");
+            eyeicon.classList.remove("bx-show");
+        }
+    }
+    
+    eyeicon2.onclick = function() {
+        if (confirmPassword.type == "password") {
+            confirmPassword.type = "text";
+            eyeicon2.classList.add("bx-show");
+            eyeicon2.classList.remove("bx-low-vision");
+        } else {
+            confirmPassword.type = "password";
+            eyeicon2.classList.add("bx-low-vision");
+            eyeicon2.classList.remove("bx-show");
+        }
+    }
+</script>
 
 </body>
 </html>
