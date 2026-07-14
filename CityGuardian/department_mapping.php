@@ -9,6 +9,9 @@ function determineDepartment($issueType, $facilityType = null, $roadType = null,
             return 'DBKL Engineering Department';
 
         case 'broken_streetlight':
+            if ($roadType === 'federal') {
+                return 'JKR';
+            }
             return 'DBKL Engineering Department';
 
         case 'illegal_dumping':
@@ -18,7 +21,13 @@ function determineDepartment($issueType, $facilityType = null, $roadType = null,
             if ($floodSource === 'major_waterway') {
                 return 'JPS';
             }
-            return 'DBKL Engineering Department'; // JPS routing would need waterway data, similar approach
+            return 'DBKL Engineering Department'; 
+
+        case 'broken_trafficlight':
+            if ($roadType === 'federal') {
+                return 'JKR';
+            }
+            return 'DBKL Engineering Department';
 
         case 'damaged_public_facility':
             $facilityMap = [
