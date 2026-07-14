@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title> Citizen Report Portal </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     
 <style>
 .image{
@@ -60,6 +60,14 @@
     border: 1px solid #ccc;
     border-radius: 5px;
 }
+
+#locationMap {
+    height: 250px;
+    width: 500px;
+    margin: 10px auto;
+    border-radius: 10px;
+    display: none;
+}
     
 	
 
@@ -75,20 +83,17 @@
         method="POST"
         enctype="multipart/form-data"
     >
-    <!-- <select name="issueType" style="text-align:center; padding: 8px; width: 200px;">
-    	<option value="">Select an option...</option>
-    	<option value="potholes">🕳️ Road Damage / Potholes</option>
-        <option value="lights">💡 Broken streetlights</option>
-        <option value="waste">🗑️ Illegal dumping / Waste</option>
-        <option value="flooding ">🚰 Water leak / Flooding </option>
-        <option value="Damaged infrastructure">💥 Damaged public facilities</option>
-	</select> -->
-    
 
     <label for="location" style="display: block; margin: 10px 0 5px 0;">Location</label>
     <input type="text" id="location" name="location" placeholder="Enter your location here" required><br>
+    <button type="button" id="autoLocateBtn" style="margin: 8px 0px 12px 0; padding: 7px 14px; font-size: 13px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">📍 Use My Current Location</button>
     <button type="button" id="mapButton" style="margin: 8px 0 12px 0; padding: 7px 14px; font-size: 13px; background-color: #2f80ed; color: white; border: none; border-radius: 5px; cursor: pointer;">Open in Google Maps</button>
     <p id="mapMessage" style="margin: 0 0 10px 0; color: #444; font-size: 13px;"></p>
+
+    <div id="locationMap"></div>
+
+    <input type="hidden" id="latitude" name="latitude">
+    <input type="hidden" id="longitude" name="longitude">
 
     <div class="image">
 	    <label for="input-file" id="drop-area">
@@ -116,167 +121,299 @@
     <p id="message" style="margin-top: 10px; color: green; font-weight: bold;"></p>
     </form>
 
-<script>
-const dropArea = document.getElementById("drop-area");
-const inputFile = document.getElementById("input-file");
-const imageView = document.getElementById("img-view");
-const reportForm = document.getElementById("reportForm");
-const message = document.getElementById("message");
-const locationInput = document.getElementById("location");
-const mapButton = document.getElementById("mapButton");
-const mapMessage = document.getElementById("mapMessage");
-const descriptionBox = document.getElementById("description");
-const analyzeButton = document.getElementById("analyzeButton");
-const analyzeMessage = document.getElementById("analyzeMessage");
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
+    <script>
+    const dropArea = document.getElementById("drop-area");
+    const inputFile = document.getElementById("input-file");
+    const imageView = document.getElementById("img-view");
+    const reportForm = document.getElementById("reportForm");
+    const message = document.getElementById("message");
+    const locationInput = document.getElementById("location");
+    const mapButton = document.getElementById("mapButton");
+    const mapMessage = document.getElementById("mapMessage");
+    const descriptionBox = document.getElementById("description");
+    const analyzeButton = document.getElementById("analyzeButton");
+    const analyzeMessage = document.getElementById("analyzeMessage");
+    const autoLocateBtn = document.getElementById("autoLocateBtn");
+    const latitudeInput = document.getElementById("latitude");
+    const longitudeInput = document.getElementById("longitude");
+    const locationMapDiv = document.getElementById("locationMap");
 
-    
-function uploadImage(){
-    let imgLink = URL.createObjectURL(inputFile.files[0]);
-    imageView.style.backgroundImage = `url(${imgLink})`;
-    imageView.textContent = "";
-    imageView.style.border = 0;
-}
-
-dropArea.addEventListener("dragover", function(e){
-	e.preventDefault();
-});
-
-
-inputFile.addEventListener("change", function(){
-    uploadImage();
-});
-
-dropArea.addEventListener("drop", function(e){
-    e.preventDefault();
-    inputFile.files = e.dataTransfer.files;
-    uploadImage();
-});
-
-analyzeButton.addEventListener("click", function(){
-    if(!inputFile.files[0]){
-        analyzeMessage.textContent = "Please upload an image first.";
-        analyzeMessage.style.color = "red";
-        return;
+    let map = null;
+    let marker = null;
+        
+    function uploadImage(){
+        let imgLink = URL.createObjectURL(inputFile.files[0]);
+        imageView.style.backgroundImage = `url(${imgLink})`;
+        imageView.textContent = "";
+        imageView.style.border = 0;
     }
-    analyzeMessage.textContent = "";
-    analyzeImage(inputFile.files[0])
-});
 
-function analyzeImage(file){
-    analyzeButton.disabled = true;
-    analyzeMessage.textContent = "Analyzing image...";
-    analyzeMessage.style.color = "#444";
-    descriptionBox.value = "";
-    descriptionBox.disabled = true;
-
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("description", descriptionBox.value);
-    formData.append("location", locationInput.value)
-
-    fetch("analyze.php", {
-        method: "POST",
-        body: formData
-    })
-    .then(response => response.json())
-    .then(result => {
-        console.log("Analysis result:", result);
-        descriptionBox.disabled = false;
-        analyzeButton.disabled = false;
-
-        if(result.success && result.data){
-            descriptionBox.value = result.data.description || "";
-            analyzeMessage.textContent = `Detected: ${result.data.issue} (${result.data.priority} priority)`;
-            analyzeMessage.style.color = "green";
-
-            reportForm.dataset.issue = result.data.issue;
-            reportForm.dataset.priority = result.data.priority;
-            reportForm.dataset.facilityType = result.data.facility_type || "";
-            reportForm.dataset.roadType = result.data.road_type || "";
-            reportForm.dataset.floodSource = result.data.flood_source || "";
-            reportForm.dataset.confidence = result.data.confidence;
-        } else {
-            analyzeMessage.textContent = "Could not auto-generate description, please describe manually.";
-            analyzeMessage.style.color = "red";
-            console.log("Error:", result.error);
-        }
-    })
-
-    .catch(error => {
-        console.log("Fetch error:", error);
-        descriptionBox.disabled = false;
-        analyzeButton.disabled = false;
-        analyzeMessage.textContent = "Error analyzing image."
-        analyzeMessage.style.color = "red";
-    });
-}
-
-mapButton.addEventListener("click", function(){
-    const query = locationInput.value.trim();
-    if (query) {
-        mapMessage.textContent = "Opening Google Maps...";
-        const url = `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=18`;
-        window.open(url, "_blank");
-    } else {
-        mapMessage.textContent = "Please enter a location first.";
-    }
-});
-
-reportForm.addEventListener("keydown", function(e){
-    if (e.key === "Enter" && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) {
+    dropArea.addEventListener("dragover", function(e){
         e.preventDefault();
-    }
-});
-
-reportForm.addEventListener("submit", function(e){
-
-    e.preventDefault();
-
-    const formData = new FormData(reportForm);
-
-    if(inputFile.files[0]){
-        formData.append("image", inputFile.files[0]);
-    }
-
-    fetch("upload.php",{
-        method:"POST",
-        body:formData
-    })
-    .then(response => response.text())
-    .then(data => {
-
-        message.textContent = data;
-
-        reportForm.reset();
-
-        imageView.style.backgroundImage = "none";
-        imageView.style.border = "2px dashed #bbb5ff";
-        imageView.innerHTML =
-        '<img src="icon.png"><p>Drag and drop or click here<br>to upload image</p><span>Upload any images from device</span>';
-
-        mapMessage.textContent = "";
-
-        message.style.color = "green";
-        message.textContent = "Report submitted successfully! Redirecting to user page...";
-
-        setTimeout(function() {
-            window.location.href = "userpage.html";
-        }, 1500);
-
-    })
-    .catch(error => {
-
-        message.style.color = "red";
-        message.textContent = "Error submitting report.";
-
-        console.log(error);
-
     });
 
-});
+
+    inputFile.addEventListener("change", function(){
+        uploadImage();
+    });
+
+    dropArea.addEventListener("drop", function(e){
+        e.preventDefault();
+        inputFile.files = e.dataTransfer.files;
+        uploadImage();
+    });
+
+    analyzeButton.addEventListener("click", function(){
+        if(!inputFile.files[0]){
+            analyzeMessage.textContent = "Please upload an image first.";
+            analyzeMessage.style.color = "red";
+            return;
+        }
+        analyzeMessage.textContent = "";
+        analyzeImage(inputFile.files[0])
+    });
+
+    function analyzeImage(file){
+        analyzeButton.disabled = true;
+        analyzeMessage.textContent = "Analyzing image...";
+        analyzeMessage.style.color = "#444";
+        descriptionBox.value = "";
+        descriptionBox.disabled = true;
+
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("description", descriptionBox.value);
+        formData.append("location", locationInput.value)
+
+        fetch("analyze.php", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+            console.log("Analysis result:", result);
+            descriptionBox.disabled = false;
+            analyzeButton.disabled = false;
+
+            if(result.success && result.data){
+                descriptionBox.value = result.data.description || "";
+                analyzeMessage.textContent = `Detected: ${result.data.issue} (${result.data.priority} priority)`;
+                analyzeMessage.style.color = "green";
+
+                reportForm.dataset.issue = result.data.issue;
+                reportForm.dataset.priority = result.data.priority;
+                reportForm.dataset.facilityType = result.data.facility_type || "";
+                reportForm.dataset.roadType = result.data.road_type || "";
+                reportForm.dataset.floodSource = result.data.flood_source || "";
+                reportForm.dataset.confidence = result.data.confidence;
+            } else {
+                analyzeMessage.textContent = "Could not auto-generate description, please describe manually.";
+                analyzeMessage.style.color = "red";
+                console.log("Error:", result.error);
+            }
+        })
+
+        .catch(error => {
+            console.log("Fetch error:", error);
+            descriptionBox.disabled = false;
+            analyzeButton.disabled = false;
+            analyzeMessage.textContent = "Error analyzing image."
+            analyzeMessage.style.color = "red";
+        });
+    }
+
+    mapButton.addEventListener("click", function(){
+        const query = locationInput.value.trim();
+        if (query) {
+            mapMessage.textContent = "Opening Google Maps...";
+            const url = `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=18`;
+            window.open(url, "_blank");
+        } else {
+            mapMessage.textContent = "Please enter a location first.";
+        }
+    });
+
+    autoLocateBtn.addEventListener("click", function(){
+        if (!navigator.geolocation) {
+            mapMessage.textContent = "Geolocation is not supported by your browser.";
+            return;
+        }
+
+        mapMessage.style.color = "#444";
+        mapMessage.textContent = "Getting your location...";
+
+        const submitBtn = reportForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Please wait...";
+
+        navigator.geolocation.getCurrentPosition(
+            async function(position){
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                latitudeInput.value = lat;
+                longitudeInput.value = lng;
+
+                // Show mini map
+                locationMapDiv.style.display = "block";
+                if (!map) {
+                    map = L.map('locationMap').setView([lat, lng], 16);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(map);
+                    marker = L.marker([lat, lng]).addTo(map);
+                } else {
+                    map.setView([lat, lng], 16);
+                    marker.setLatLng([lat, lng]);
+                }
+                setTimeout(function() { map.invalidateSize(); }, 100);
+
+                // Reverse geocode to fill the text field
+                mapMessage.textContent = "Looking up address...";
+                try {
+                    const geoRes = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                        { headers: { 'Accept-Language': 'en' } }
+                    );
+                    if (!geoRes.ok) throw new Error(`Nominatim returned status ${geoRes.status}`);
+                
+                    const geoData = await geoRes.json();
+
+                    if (geoData.display_name) {
+                        locationInput.value = geoData.display_name;
+                        marker.bindPopup(geoData.display_name).openPopup();
+                        mapMessage.style.color = "#27ae60";
+                        mapMessage.textContent = "Location detected — feel free to edit it above.";
+                    } else {
+                        mapMessage.textContent = "Got coordinates, but couldn't resolve an address. You can type it manually.";
+                    }
+                } catch (err) {
+                    mapMessage.textContent = "Coordinates captured, but address lookup failed. You can type it manually.";
+                    console.error(err);
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Report";
+            },
+            function(error){
+                mapMessage.style.color = "red";
+                mapMessage.textContent = "Could not get location: " + error.message;
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Report";
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+
+    async function lookupLocationFromText(query) {
+        if (!query || query.trim() === "") return;
     
-</script>
+        mapMessage.style.color = "#444";
+        mapMessage.textContent = "Looking up location...";
+    
+        try {
+            const geoRes = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=my`,
+                { headers: { 'Accept-Language': 'en' } }
+            );
+            if (!geoRes.ok) throw new Error(`Nominatim returned status ${geoRes.status}`);
+    
+            const results = await geoRes.json();
+            if (!results || results.length === 0) {
+                mapMessage.style.color = "#444";
+                mapMessage.textContent = "Couldn't find that location on the map.";
+                return;
+            }
+    
+            const lat = parseFloat(results[0].lat);
+            const lng = parseFloat(results[0].lon);
+    
+            latitudeInput.value = lat;
+            longitudeInput.value = lng;
+    
+            locationMapDiv.style.display = "block";
+            if (!map) {
+                map = L.map('locationMap').setView([lat, lng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+                marker = L.marker([lat, lng]).addTo(map);
+            } else {
+                map.setView([lat, lng], 16);
+                marker.setLatLng([lat, lng]);
+            }
+            setTimeout(function() { map.invalidateSize(); }, 100);
+    
+            mapMessage.style.color = "#27ae60";
+            mapMessage.textContent = "Location matched on map.";
+    
+        } catch (err) {
+            mapMessage.textContent = "Location lookup failed.";
+            console.error(err);
+        }
+    }
+
+    locationInput.addEventListener("blur", function(){
+        lookupLocationFromText(locationInput.value);
+    });
+
+    reportForm.addEventListener("keydown", function(e){
+        if (e.key === "Enter" && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) {
+            e.preventDefault();
+        }
+    });
+
+    reportForm.addEventListener("submit", function(e){
+
+        e.preventDefault();
+
+        const formData = new FormData(reportForm);
+
+        if(inputFile.files[0]){
+            formData.append("image", inputFile.files[0]);
+        }
+
+        fetch("upload.php",{
+            method:"POST",
+            body:formData
+        })
+        .then(response => response.text())
+        .then(data => {
+
+            message.textContent = data;
+
+            reportForm.reset();
+
+            imageView.style.backgroundImage = "none";
+            imageView.style.border = "2px dashed #bbb5ff";
+            imageView.innerHTML =
+            '<img src="icon.png"><p>Drag and drop or click here<br>to upload image</p><span>Upload any images from device</span>';
+
+            mapMessage.textContent = "";
+
+            message.style.color = "green";
+            message.textContent = "Report submitted successfully! Redirecting to user page...";
+
+            setTimeout(function() {
+                window.location.href = "userpage.html";
+            }, 1500);
+
+        })
+        .catch(error => {
+
+            message.style.color = "red";
+            message.textContent = "Error submitting report.";
+
+            console.log(error);
+
+        });
+
+    });
+        
+    </script>
 
 </body>
 </html>
