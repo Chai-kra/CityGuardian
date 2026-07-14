@@ -187,7 +187,7 @@ function analyzeImage(file){
 
         if(result.success && result.data){
             descriptionBox.value = result.data.description || "";
-            analyzeMessage.textContent = `Detected: ${result.data.issue} (${result.data.priority} priority) — feel free to edit.`;
+            analyzeMessage.textContent = `Detected: ${result.data.issue} (${result.data.priority} priority)`;
             analyzeMessage.style.color = "green";
 
             reportForm.dataset.issue = result.data.issue;
