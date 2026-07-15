@@ -27,7 +27,6 @@ if ($image !== "" && trim($aiDescription) !== "") {
     $result = classifyIssue("uploads/" . $image, $aiDescription, $location);
 
     if (isset($result['success'])) {
-        $aiDescription = $result['data']['description'] ?? null;
 
         // Map lowercase priority from Gemini to your ENUM's capitalized format
         $priorityMap = [
