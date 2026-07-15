@@ -285,7 +285,7 @@
                         locationInput.value = geoData.display_name;
                         marker.bindPopup(geoData.display_name).openPopup();
                         mapMessage.style.color = "#27ae60";
-                        mapMessage.textContent = "Location detected — feel free to edit it above.";
+                        mapMessage.textContent = "Location detected";
                     } else {
                         mapMessage.textContent = "Got coordinates, but couldn't resolve an address. You can type it manually.";
                     }
@@ -383,35 +383,29 @@
         .then(response => response.text())
         .then(data => {
 
-            message.textContent = data;
+            console.log("Upload response:", data); // 先加这行，方便debug
 
-            reportForm.reset();
+            if(data.includes("successfully")){
+                message.style.color = "green";
+                message.textContent = data;
 
-            imageView.style.backgroundImage = "none";
-            imageView.style.border = "2px dashed #bbb5ff";
-            imageView.innerHTML =
-            '<img src="icon.png"><p>Drag and drop or click here<br>to upload image</p><span>Upload any images from device</span>';
+                reportForm.reset();
+                imageView.style.backgroundImage = "none";
+                imageView.style.border = "2px dashed #bbb5ff";
+                imageView.innerHTML =
+                '<img src="icon.png"><p>Drag and drop or click here<br>to upload image</p><span>Upload any images from device</span>';
+                mapMessage.textContent = "";
 
-            mapMessage.textContent = "";
-
-            message.style.color = "green";
-            message.textContent = "Report submitted successfully! Redirecting to user page...";
-
-            setTimeout(function() {
-                window.location.href = "userpage.html";
-            }, 1500);
+                setTimeout(function() {
+                    window.location.href = "userpage.html";
+                }, 1500);
+            } else {
+                message.style.color = "red";
+                message.textContent = data; // 显示PHP真正的错误信息
+            }
 
         })
-        .catch(error => {
-
-            message.style.color = "red";
-            message.textContent = "Error submitting report.";
-
-            console.log(error);
-
-        });
-
-    });
+            });
         
     </script>
 

@@ -4,7 +4,7 @@ require_once "db.php"; // gives us $geminiApiKey
 function classifyIssue($imagePath, $userDescription = '', $userLocation = '') {
     global $geminiApiKey;
 
-    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$geminiApiKey";
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiApiKey";
 
     $imageData = base64_encode(file_get_contents($imagePath));
     $mimeType = mime_content_type($imagePath);
