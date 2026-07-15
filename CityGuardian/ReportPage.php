@@ -114,7 +114,7 @@
 
     <label for="description">Description</label><br>
     <div style="display: inline-block; position: relative;">
-        <textarea name="description" id="description" placeholder="Further details to help field crews find and fix the issue faster..." required></textarea>
+        <textarea name="ai_description" id="description" placeholder="Click 'Analyze Image with AI' above, then review or edit the description here..." required></textarea>
     </div>
 
     <button type="submit" style="display: block; margin: 10px auto 0 auto; padding: 8px 20px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Submit Report</button>
@@ -184,7 +184,6 @@
 
         const formData = new FormData();
         formData.append("image", file);
-        formData.append("description", descriptionBox.value);
         formData.append("location", locationInput.value)
 
         fetch("analyze.php", {
@@ -197,17 +196,10 @@
             descriptionBox.disabled = false;
             analyzeButton.disabled = false;
 
-            if(result.success && result.data){
-                descriptionBox.value = result.data.description || "";
-                analyzeMessage.textContent = `Detected: ${result.data.issue} (${result.data.priority} priority)`;
+            if(result.success){
+                descriptionBox.value = result.description || "";
+                analyzeMessage.textContent = "AI description generated — feel free to edit before submitting.";
                 analyzeMessage.style.color = "green";
-
-                reportForm.dataset.issue = result.data.issue;
-                reportForm.dataset.priority = result.data.priority;
-                reportForm.dataset.facilityType = result.data.facility_type || "";
-                reportForm.dataset.roadType = result.data.road_type || "";
-                reportForm.dataset.floodSource = result.data.flood_source || "";
-                reportForm.dataset.confidence = result.data.confidence;
             } else {
                 analyzeMessage.textContent = "Could not auto-generate description, please describe manually.";
                 analyzeMessage.style.color = "red";

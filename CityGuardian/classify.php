@@ -1,7 +1,62 @@
 <?php
 require_once "db.php"; // gives us $geminiApiKey
 
-function classifyIssue($imagePath, $userDescription = '', $userLocation = '') {
+function generateAIDescription($imagePath, $userLocation = '') {
+    global $geminiApiKey;
+ 
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiApiKey";
+ 
+    $imageData = base64_encode(file_get_contents($imagePath));
+    $mimeType = mime_content_type($imagePath);
+ 
+    $sysInstruct = <<<SYS
+        You are CityGuardian in Malaysia. Carefully observe the image and write ONE detailed paragraph describing the urban issue you see: 
+        what it is, exactly where in the image it is located, how severe it visually looks, 
+        and any other detail a city department would need in order to fix it. 
+        Use the location text provided (if any) to add context such as road name or neighbourhood, 
+        but never invent details that are not visible in the image or present in the location text.
+ 
+        Respond ONLY with valid JSON in this exact format, nothing else:
+        {
+        "description": "One detailed paragraph describing the issue and where it is in the image"
+        }
+    SYS;
+ 
+    $userText = "Analyze this image and describe the issue you see.\n";
+    $userText .= "Location: " . ($userLocation !== '' ? $userLocation : "(none provided)");
+ 
+    $data = [
+        "system_instruction" => [
+            "parts" => [["text" => $sysInstruct]]
+        ],
+        "contents" => [
+            [
+                "role" => "user",
+                "parts" => [
+                    ["text" => $userText],
+                    [
+                        "inline_data" => [
+                            "mime_type" => $mimeType,
+                            "data" => $imageData
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ];
+ 
+    $result = callGemini($url, $data);
+    if (isset($result['error'])) {
+        return $result;
+    }
+ 
+    return [
+        "success"     => true,
+        "description" => $result['data']['description'] ?? ''
+    ];
+}
+
+function classifyIssue($imagePath, $aiDescription, $userLocation = '') {
     global $geminiApiKey;
 
     $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiApiKey";
@@ -10,7 +65,10 @@ function classifyIssue($imagePath, $userDescription = '', $userLocation = '') {
     $mimeType = mime_content_type($imagePath);
 
     $sysInstruct = <<<SYS
-        You are CityGuardian in Malaysia. Your main goal is to identify the issue from the image given.
+        You are CityGuardian in Malaysia. Your goal is to classify the issue below using the image, the location, and the description as evidence. 
+        Treat the description as the confirmed account of the issue (it has been reviewed by the person reporting it).
+        Use the image mainly to double check details like how severe it looks.
+        
         There are 6 possible issues: pothole, broken_streetlight, illegal_dumping, flooding, broken_trafficlight, damaged_public_facility.
         There are 4 priority levels, depending on how severe the issue appears in the image: critical, high, medium, low.
 
@@ -24,7 +82,6 @@ function classifyIssue($imagePath, $userDescription = '', $userLocation = '') {
         "road_type": "federal" | "other" | null,
         "flood_source": "major_waterway" | "local_drain" | null,
         "priority": "critical" | "high" | "medium" | "low",
-        "description": "One paragraph of what you see in the image, the user's description, and location of the issue",
         "confidence": 0.0 to 1.0
         }
     SYS;
@@ -43,7 +100,7 @@ function classifyIssue($imagePath, $userDescription = '', $userLocation = '') {
         flooding = when water covers land that is usually dry.
 
         broken_trafficlight = A broken or malfunctioning traffic light is any signal that fails to display its standard stop, 
-        caution, or go sequence. This includes completely dark intersections, stuck lights, or signals flashing red or yellow in all directions. 
+        caution, or go sequence. This includes completely dark intersections, stuck lights, or signals flashing red or yellow in all directions, or other possible issues. 
 
         damaged_public_facility = a broken or ruined place and service that the government provides for everyone to use.
 
@@ -82,9 +139,9 @@ function classifyIssue($imagePath, $userDescription = '', $userLocation = '') {
 
     KNOWLEDGE;
 
-    $userText = "Analyze this image and classify the issue.\n";
+    $userText = "Classify this issue.\n";
     $userText .= $knowledge . "\n\n";
-    $userText .= "User's description: " . ($userDescription !== '' ? $userDescription : "(none provided)") . "\n";
+    $userText .= "Description (confirmed by reporter): " . $aiDescription . "\n";
     $userText .= "Location: " . ($userLocation !== '' ? $userLocation : "(none provided)");
 
     $data = [
@@ -107,35 +164,39 @@ function classifyIssue($imagePath, $userDescription = '', $userLocation = '') {
         ]
     ];
 
+    return callGemini($url, $data);
+}
+
+function callGemini($url, $data) {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
-
+ 
     $response = curl_exec($ch);
-
+ 
     if (curl_errno($ch)) {
         $error = curl_error($ch);
         curl_close($ch);
         return ["error" => $error];
     }
     curl_close($ch);
-
+ 
     $decoded = json_decode($response, true);
     $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
+ 
     if (!$text) {
         return ["error" => "No response text", "raw" => $decoded];
     }
-
+ 
     $text = preg_replace('/```json|```/', '', $text);
     $result = json_decode(trim($text), true);
-
+ 
     if (json_last_error() !== JSON_ERROR_NONE) {
         return ["error" => "Could not parse AI response", "raw_text" => $text];
     }
-
+ 
     return ["success" => true, "data" => $result];
 }
 ?>

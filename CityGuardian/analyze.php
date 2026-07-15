@@ -9,11 +9,10 @@ if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
 }
 
 $imagePath = $_FILES['image']['tmp_name'];
-$userDescription = $_POST['description'] ?? '';
 $userLocation = $_POST['location'] ?? '';
 
 try {
-    $result = classifyIssue($imagePath, $userDescription, $userLocation);
+    $result = generateAIDescription($imagePath, $userLocation);
     echo json_encode($result);
 } catch (Exception $e) {
     echo json_encode(["success" => false, "error" => $e->getMessage()]);

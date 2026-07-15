@@ -5,8 +5,8 @@ require_once "department_mapping.php";
 
 $issue = null;
 $location = $_POST['location'];
-$description = $_POST['description'];
-
+$description = ""; // remove
+$aiDescription = $_POST['ai_description'] ?? '';
 $image = "";
 
 if(isset($_FILES['image']) && $_FILES['image']['error'] == 0){
@@ -19,13 +19,12 @@ if(isset($_FILES['image']) && $_FILES['image']['error'] == 0){
     );
 }
 
-$aiDescription = null;
 $aiPriority = null;
 $aiDepartment = "DBKL Engineering Department"; // default fallback
 $aiConfidence = null;
 
-if ($image !== "") {
-    $result = classifyIssue("uploads/" . $image, $description, $location);
+if ($image !== "" && trim($aiDescription) !== "") {
+    $result = classifyIssue("uploads/" . $image, $aiDescription, $location);
 
     if (isset($result['success'])) {
         $aiDescription = $result['data']['description'] ?? null;
@@ -56,18 +55,21 @@ if ($image !== "") {
     } else {
         error_log("AI classification failed: " . json_encode($result));
     }
+} else {
+    error_log("Submit called without an image or without a reviewed ai_description.");
 }
 
 $sql = "INSERT INTO reports
 (issue_type, location, description, image, ai_description, ai_priority, ai_department, ai_confidence)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+// remove description and 1 question mark (?)
 
 $stmt = $conn->prepare($sql);
 
 $stmt->bind_param("ssssssss",
     $issue,
     $location,
-    $description,
+    $description, // remove
     $image,
     $aiDescription,
     $aiPriority,
