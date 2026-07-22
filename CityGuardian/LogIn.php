@@ -1,5 +1,8 @@
 <?php
+session_start();
 include "db.php";
+
+$error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -24,14 +27,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             exit();
 
         } else {
-            echo "Invalid email or password.";
+            $_SESSION['error'] = "Invalid email or password.";
+            header("Location: LogIn.php");
+            exit();
         }
 
     } else {
-        echo "Invalid email or password.";
+        $_SESSION['error'] = "Invalid email or password.";
+        header("Location: LogIn.php");
+        exit();
     }
 }
+
+$error = $_SESSION['error'] ?? "";
+unset($_SESSION['error']);
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -45,16 +56,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
     <div class="login-box">
-        <form action="login.php" method="POST">
+        <form action="LogIn.php" method="POST">
             <h1>Log In</h1>
+
             <div class="input-box">
-              <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
                 <i class='bx bxs-envelope' ></i>
             </div>
             <div class="input-box">
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
                 <i class='bx bx-low-vision' id="eyeicon"></i>
             </div>
+
+            <?php if (!empty($error)): ?>
+                <p class = "error-message"><?php echo $error; ?></p>
+            <?php endif; ?>
 
             <div class="remember-forgot">
                 <label><input type="checkbox">Remember me</label>

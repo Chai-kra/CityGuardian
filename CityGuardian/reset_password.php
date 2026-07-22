@@ -35,25 +35,60 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("ss", $hashedPassword, $token);
     $stmt->execute();
 
-    echo "Password reset successful. You can now login.";
-    exit;
+    echo "<script>
+            alert('Password reset successful. You can now login.');
+            window.location='LogIn.php';
+          </script>";
+    exit();
+
 }
 ?>
 
 <!-- HTML FORM -->
-<!DOCTYPE html>
-<html>
+ <!DOCTYPE html>
+<html lang="en">
+
 <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
+
 <body>
 
-<h2>Reset Password</h2>
+    <div class="ResetPassword-box">
+        <form method="POST">
+            <h1>Reset Password</h1>
+            <div class="input-box">
+                <input type="password" id="password" name="password" placeholder="New Password" required>
+                <i class='bx bx-low-vision' id="eyeicon"></i>
+            </div>
 
-<form method="POST">
-    <input type="password" name="password" placeholder="New Password" required>
-    <button type="submit">Reset Password</button>
-</form>
+            <button type="submit" class="btn">Reset Password</button>
+
+        </form>
+    </div>
 
 </body>
+<script>    
+    let eyeicon = document.getElementById("eyeicon");
+    let password = document.getElementById("password");
+
+    eyeicon.onclick = function() {
+        if (password.type == "password") {
+            password.type = "text";
+            eyeicon.classList.add("bx-show");
+            eyeicon.classList.remove("bx-low-vision");
+        } else {
+            password.type = "password";
+            eyeicon.classList.add("bx-low-vision");
+            eyeicon.classList.remove("bx-show");
+        }
+    }
+
+</script>
+
 </html>

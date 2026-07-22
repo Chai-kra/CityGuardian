@@ -8,6 +8,8 @@ require __DIR__ . '/vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+$message = "";
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $email = $_POST['email'];
@@ -47,18 +49,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mail->Body = "<a href='$resetLink'>Reset Password</a>";
 
             $mail->send();
-            echo "Reset email sent!";
+            $message = "Reset email sent!";
         } catch (Exception $e) {
-            echo "Mailer Error: " . $mail->ErrorInfo;
+            $message = "Mailer Error: " . $mail->ErrorInfo;
         }
 
     } else {
-        echo "Email not found";
+        $message = "Email not found";
     }
 }
 ?>
 
-<form method="POST">
-    <input type="email" name="email" required>
-    <button type="submit">Send Reset Link</button>
-</form>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="ForgotPassword-box">
+        <form method="POST">
+            <h1>Forgot Password?</h1>
+            <div class="input-box">
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                <i class='bx bxs-envelope' ></i>
+            </div>
+
+            <?php if (!empty($message)): ?>
+                <p class="message-text"><?php echo $message; ?></p>
+            <?php endif; ?>
+
+            <button type="submit" class="btn">Send Reset Link</button>
+
+        </form>
+    </div>
+</body>
