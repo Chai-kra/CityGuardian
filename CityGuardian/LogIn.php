@@ -3,6 +3,7 @@ session_start();
 include "db.php";
 
 $error = "";
+$loginSuccess = false;
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -16,16 +17,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $result = $stmt->get_result();
 
-       if ($result->num_rows == 1) {
+    if ($result->num_rows == 1) {
 
         $user = $result->fetch_assoc();
 
         // Compare entered password with hashed password
         if (password_verify($password, $user["password"])) {
 
-            header("Location: ReportPage.php");
-            exit();
-
+            $loginSuccess = true;
         } else {
             $_SESSION['error'] = "Invalid email or password.";
             header("Location: LogIn.php");
@@ -84,6 +83,29 @@ unset($_SESSION['error']);
             </div>
         </form>
     </div>
+
+    <!-- Loading Animation -->
+    <div class="loader-overlay<?php echo $loginSuccess ? ' active' : ''; ?>" id="loaderOverlay">
+        <div class="loader-ship">
+            <span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+            <div class="loader-base">
+                <span></span>
+                <div class="loader-face"></div>
+            </div>
+        </div>
+        <div class="longfazers">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <h1>Redirecting</h1>
+    </div>
 </body>
 
 <script>    
@@ -101,6 +123,13 @@ unset($_SESSION['error']);
             eyeicon.classList.remove("bx-show");
         }
     }
+
+    <?php if ($loginSuccess): ?>
+        // Show loader overlay and redirect after 3 seconds
+        setTimeout(function() {
+            window.location.href = "ReportPage.php";
+        }, 3000);
+    <?php endif; ?>
 
 </script>
 
