@@ -1,7 +1,7 @@
 <?php
 session_start();
 include "db.php";
-
+//this is a comment
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: LogIn.php");
     exit();
