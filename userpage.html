@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Page</title>
+
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #e0e0e0;
+}
+
+.container {
+    display: grid;
+
+    grid-template-rows: 0.2fr 3fr;
+    grid-template-areas: 
+        "header"
+        "main";
+    height: 100vh;
+}
+
+.navbar {
+    background-color: #1a237e; /* 藏蓝色 */
+    color: white;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.brand {
+    font-size: 16px;
+    font-weight: bold;
+}
+.nav-links button {
+    background: none;
+    border: none;
+    color: #b0bec5;
+    font-size: 14px;
+    margin-left: 20px;
+    cursor: pointer;
+    padding: 5px 0;
+}
+
+.nav-links button.active {
+    color: white;
+    border-bottom: 2px solid white;
+}
+
+.main-container {
+    grid-area: main;
+    text-align: left;
+    text-indent: 20px;
+}
+
+.report-container{
+    margin: 10px;
+    padding: 10px;
+    background-color: #a7c6ff;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <i class='bx bxs-user'></i>
+                <span>User Page</span>
+            </div>
+    </div>
+    <div class="container">
+    <header class="navbar">
+        <div class="brand"> </div>
+        <div class="nav-links">
+            <button class="active" id="btn-home" onclick="switchPage('home')">Home</button>
+            <button id="btn-profile" onclick="switchPage('profile')">Profile</button>
+            <button id="btn-settings" onclick="switchPage('settings')">Settings</button>
+            <button id="btn-logout" onclick="switchPage('logout')">Logout</button>
+        </div>
+    </header>
+    <main class="main-container">  
+        <div class="report-container"><h2>Report 1</h2></div>
+        <div class="report-container"><h2>Report 2</h2></div>
+        <div class="report-container"><h2>Report 3</h2></div>
+    </main>
+    </div>
+
+
+<script >
+function switchPage(page) {
+    const mainContainer = document.querySelector('.main-container');
+    const btnHome = document.getElementById('btn-home');
+    const btnProfile = document.getElementById('btn-profile');
+    const btnSettings = document.getElementById('btn-settings');
+    const btnLogout = document.getElementById('btn-logout');
+
+    // Clear the main container
+    mainContainer.innerHTML = ' ';
+
+    // Update button styles
+    if (page === 'home') {
+        btnHome.classList.add('active');
+        btnProfile.classList.remove('active');
+        btnSettings.classList.remove('active');
+        btnLogout.classList.remove('active');
+        mainContainer.innerHTML = `
+            <div class="report-container"><h2>Report 1</h2></div>
+            <div class="report-container"><h2>Report 2</h2></div>
+            <div class="report-container"><h2>Report 3</h2></div>
+            
+            `;
+    } else if (page === 'profile') {
+        btnProfile.classList.add('active');
+        btnHome.classList.remove('active');
+        btnSettings.classList.remove('active');
+        btnLogout.classList.remove('active');
+        mainContainer.innerHTML = `
+            <div class="report-container"><h2>Profile Information</h2></div>
+        `;
+    } else if (page === 'settings') {
+        btnSettings.classList.add('active');
+        btnHome.classList.remove('active');
+        btnProfile.classList.remove('active');
+        btnLogout.classList.remove('active');
+        mainContainer.innerHTML = `
+            <div class="report-container"><h2>Settings</h2></div>
+        `;
+    } else if (page === 'logout') {
+        btnLogout.classList.add('active');
+        btnHome.classList.remove('active');
+        btnProfile.classList.remove('active');
+        btnSettings.classList.remove('active');
+        mainContainer.innerHTML = `
+            <div class="report-container"><h2>Logout</h2></div>
+        `;
+    }
+}
+
+
+
+</script>
+</body>
+</html>
