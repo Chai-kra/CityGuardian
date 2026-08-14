@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head> //testgit
+<head> 
     <title>Main Page</title>
 </head>
 <body>
