@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $loginSuccess = true;
 
             if ($user['role'] === 'admin') {
-                $redirectPage = "adminpage.php";
+                $redirectPage = "caseReview.php";
             } else {
                 // ReportPage.php lives in report/, not user/
                 $redirectPage = "../report/ReportPage.php";
