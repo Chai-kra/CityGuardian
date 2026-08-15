@@ -2,8 +2,10 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require __DIR__ . '/db.php';
-require __DIR__ . '/vendor/autoload.php';
+// Fixed: db.php is one level up in CityGuardian root; vendor/autoload.php
+// actually lives inside Library/, not at the CityGuardian root.
+require __DIR__ . '/../db.php';
+require __DIR__ . '/../Library/vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -42,7 +44,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mail->setFrom('cityguardian7@gmail.com', 'CityGuardian');
             $mail->addAddress($email);
 
-            $resetLink = "http://localhost/CityGuardian/reset_password.php?token=$token";
+            // Fixed: reset_password.php lives in the user/ folder, not the
+            // CityGuardian root, so the link needs the user/ segment.
+            $resetLink = "http://localhost/CityGuardian/user/reset_password.php?token=$token";
 
             $mail->isHTML(true);
             $mail->Subject = "Reset Password";
@@ -68,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forgot Password</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
@@ -89,3 +93,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </form>
     </div>
 </body>
+</html>

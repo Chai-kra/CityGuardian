@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "db.php";
+include "../db.php";
 
 $error = "";
 $loginSuccess = false;
@@ -8,8 +8,16 @@ $redirectPage = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $email = $_POST["email"];
+    $email = trim($_POST["email"]);
     $password = $_POST["password"];
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        $_SESSION['error'] = "Please enter a valid email address.";
+        header("Location: LogIn.php");
+        exit();
+
+    }
 
     $sql = "SELECT * FROM users WHERE email=?";
     $stmt = $conn->prepare($sql);
@@ -36,7 +44,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($user['role'] === 'admin') {
                 $redirectPage = "adminpage.php";
             } else {
-                $redirectPage = "ReportPage.php";
+                // ReportPage.php lives in report/, not user/
+                $redirectPage = "../report/ReportPage.php";
             }
 
         } else {
@@ -74,7 +83,7 @@ unset($_SESSION['error']);
 
     <title>LogIn Page</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../css/style.css">
 
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
           rel="stylesheet">

@@ -1,5 +1,5 @@
 <?php
-include "db.php";
+include "../db.php";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -31,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($stmt->execute()) {
                 echo "<script>
                         alert('Registration successful!');
-                        window.location='login.php';
+                        window.location='LogIn.php';
                       </script>";
                 exit();
             } else {
@@ -57,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register Page</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 
@@ -88,7 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <div class="login-link">
 <p>Already have an account?
-<a href="login.php">Log In</a>
+<a href="LogIn.php">Log In</a>
 </p>
 </div>
 

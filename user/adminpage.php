@@ -1,14 +1,14 @@
 <?php
 session_start();
-include "db.php";
-//this is a comment
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+include "../db.php";
+
+if (!isset($_SESSION['user_id'])) {
     header("Location: LogIn.php");
     exit();
 }
 
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: UserPage.php");
+if ($_SESSION['role'] !== 'admin') {
+    header("Location: userpage.php");
     exit();
 }
 
@@ -31,6 +31,68 @@ $settled = $settledResult->fetch_assoc()['total'];
 $actionPercent = $total > 0 ? ($actionNeeded / $total) * 100 : 0;
 $underwayPercent = $total > 0 ? ($underway / $total) * 100 : 0;
 $settledPercent = $total > 0 ? ($settled / $total) * 100 : 0;
+
+$caseReviewHtml = <<<HTML
+    <div class="map-container">
+
+        <h1>Location Map</h1>
+
+        <iframe
+            src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d7967.530022559729!2d101.71401304999999!3d3.156548150000005!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1szh-CN!2smy!4v1783431995204!5m2!1szh-CN!2smy"
+            width="600"
+            height="450"
+            allowfullscreen
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin">
+        </iframe>
+
+    </div>
+
+    <div class="report-container">
+        <h2>Total Reports: {$total}</h2>
+    </div>
+
+    <div class="report-container">
+        <h2>Action Needed: {$actionNeeded}</h2>
+    </div>
+
+    <div class="report-container">
+        <h2>Underway: {$underway}</h2>
+    </div>
+
+    <div class="report-container">
+        <h2>Settled: {$settled}</h2>
+    </div>
+HTML;
+
+$statisticsHtml = <<<HTML
+    <p class="chart-title">Statistics Pie Chart</p>
+
+    <div class="chart-container">
+
+        <div class="chart"></div>
+
+        <div class="legend">
+
+            <div class="legend-item">
+                <div class="legend-box settled"></div>
+                <span>Settled: {$settled}</span>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-box underway"></div>
+                <span>Underway: {$underway}</span>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-box action"></div>
+                <span>Action Needed: {$actionNeeded}</span>
+            </div>
+
+        </div>
+
+    </div>
+HTML;
 ?>
 
 <!DOCTYPE html>
@@ -200,44 +262,16 @@ $settledPercent = $total > 0 ? ($settled / $total) * 100 : 0;
 
 
     <main class="main-container">
-
-        <div class="map-container">
-
-            <h1>Location Map</h1>
-
-            <iframe
-                src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d7967.530022559729!2d101.71401304999999!3d3.156548150000005!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1szh-CN!2smy!4v1783431995204!5m2!1szh-CN!2smy"
-                width="600"
-                height="450"
-                allowfullscreen
-                loading="lazy"
-                referrerpolicy="strict-origin-when-cross-origin">
-            </iframe>
-
-        </div>
-
-        <div class="report-container">
-            <h2>Total Reports: <?php echo $total; ?></h2>
-        </div>
-
-        <div class="report-container">
-            <h2>Action Needed: <?php echo $actionNeeded; ?></h2>
-        </div>
-
-        <div class="report-container">
-            <h2>Underway: <?php echo $underway; ?></h2>
-        </div>
-
-        <div class="report-container">
-            <h2>Settled: <?php echo $settled; ?></h2>
-        </div>
-
+        <?php echo $caseReviewHtml; ?>
     </main>
 
 </div>
 
 
 <script>
+
+const CASE_REVIEW_HTML = <?php echo json_encode($caseReviewHtml); ?>;
+const STATISTICS_HTML = <?php echo json_encode($statisticsHtml); ?>;
 
 function switchPage(page) {
 
@@ -252,72 +286,14 @@ function switchPage(page) {
         btnReview.classList.add('active');
         btnStats.classList.remove('active');
 
-        mainContainer.innerHTML = `
-            <div class="map-container">
-
-                <h1>Location Map</h1>
-
-                <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d7967.530022559729!2d101.71401304999999!3d3.156548150000005!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1szh-CN!2smy!4v1783431995204!5m2!1szh-CN!2smy"
-                    width="600"
-                    height="450"
-                    allowfullscreen
-                    loading="lazy"
-                    referrerpolicy="strict-origin-when-cross-origin">
-                </iframe>
-
-            </div>
-
-            <div class="report-container">
-                <h2>Total Reports: <?php echo $total; ?></h2>
-            </div>
-
-            <div class="report-container">
-                <h2>Action Needed: <?php echo $actionNeeded; ?></h2>
-            </div>
-
-            <div class="report-container">
-                <h2>Underway: <?php echo $underway; ?></h2>
-            </div>
-
-            <div class="report-container">
-                <h2>Settled: <?php echo $settled; ?></h2>
-            </div>
-        `;
+        mainContainer.innerHTML = CASE_REVIEW_HTML;
 
     } else if (page === 'statistics') {
 
         btnStats.classList.add('active');
         btnReview.classList.remove('active');
 
-        mainContainer.innerHTML = `
-            <p class="chart-title">Statistics Pie Chart</p>
-
-            <div class="chart-container">
-
-                <div class="chart"></div>
-
-                <div class="legend">
-
-                    <div class="legend-item">
-                        <div class="legend-box settled"></div>
-                        <span>Settled: <?php echo $settled; ?></span>
-                    </div>
-
-                    <div class="legend-item">
-                        <div class="legend-box underway"></div>
-                        <span>Underway: <?php echo $underway; ?></span>
-                    </div>
-
-                    <div class="legend-item">
-                        <div class="legend-box action"></div>
-                        <span>Action Needed: <?php echo $actionNeeded; ?></span>
-                    </div>
-
-                </div>
-
-            </div>
-        `;
+        mainContainer.innerHTML = STATISTICS_HTML;
     }
 }
 

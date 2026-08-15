@@ -1,5 +1,5 @@
 <?php
-require_once "db.php"; // gives us $geminiApiKey
+require_once "../db.php"; // gives us $geminiApiKey
 
 function generateAIDescription($imagePath, $userLocation = '') {
     global $geminiApiKey;

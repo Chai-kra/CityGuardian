@@ -1,14 +1,14 @@
 <?php
 session_start();
-include "db.php";
+include "../db.php";
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.html");
+    header("Location: ../user/LogIn.php");
     exit();
 }
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: UserPage.php");
+    header("Location: ../user/userpage.php");
     exit();
 }
 
@@ -40,7 +40,7 @@ $result = $conn->query($sql);
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Case Review</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=search">
 </head>
@@ -63,7 +63,7 @@ $result = $conn->query($sql);
             </li>
 
             <li class="nav-item">
-                <a href="logout.php" class="nav-link">Log Out</a>
+                <a href="../user/logout.php" class="nav-link">Log Out</a>
             </li>
         </ul>
     </nav>

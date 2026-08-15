@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
-    header("Location: LogIn.php");
+    header("Location: user/LogIn.php");
     exit();
 }
 ?>
@@ -80,14 +80,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
 	
 
 </style>
-    <button onclick="window.location.href='userpage.php'" style="position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to User Page</button>
+    <button onclick="window.location.href='user/UserPage.php'" style="position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to User Page</button>
 </head>
 <body style="text-align:center;">
 	<h1>Smart Urban Issue Detection & Response System</h1>
     <h2>Submit a new issue</h2>
     <form
         id="reportForm"
-        action="upload.php"
+        action="user/upload.php"
         method="POST"
         enctype="multipart/form-data"
     >

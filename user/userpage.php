@@ -1,5 +1,5 @@
 <?php
-include "db.php";
+include "../db.php";
 
 session_start();
 
@@ -150,7 +150,6 @@ function switchPage(page) {
     const btnSettings = document.getElementById('btn-settings');
     const btnLogout = document.getElementById('btn-logout');
 
-    // Remove active from all buttons
     btnHome.classList.remove('active');
     btnProfile.classList.remove('active');
     btnSettings.classList.remove('active');

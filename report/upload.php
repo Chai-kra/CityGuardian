@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "db.php";
+include "../db.php";
 
 if (!isset($_SESSION['user_id'])) {
     echo "Please login first.";

@@ -2,12 +2,12 @@
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.html");
+    header("Location: ../user/LogIn.php");
     exit();
 }
 
 if ($_SESSION['role'] !== 'admin') {
-    header("Location: UserPage.php");
+    header("Location: ../user/userpage.php");
     exit();
 }
 ?>
@@ -22,7 +22,7 @@ if ($_SESSION['role'] !== 'admin') {
 
     <title>Statistics</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 </head>
 
@@ -50,7 +50,7 @@ if ($_SESSION['role'] !== 'admin') {
             </li>
 
             <li class="nav-item">
-                <a href="logout.php" class="nav-link">
+                <a href="../user/logout.php" class="nav-link">
                     Log Out
                 </a>
             </li>
