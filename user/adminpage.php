@@ -3,12 +3,12 @@ session_start();
 include "../db.php";
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: LogIn.php");
+    header("Location: ../user/LogIn.php");
     exit();
 }
 
 if ($_SESSION['role'] !== 'admin') {
-    header("Location: userpage.php");
+    header("Location: ../user/userpage.php");
     exit();
 }
 
@@ -252,7 +252,7 @@ HTML;
                 Statistics
             </button>
 
-            <button onclick="window.location.href='logout.php'">
+            <button onclick="window.location.href='../user/logout.php'">
                 Log Out
             </button>
 

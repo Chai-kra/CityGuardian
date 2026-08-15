@@ -1,5 +1,5 @@
 <?php
-require_once "classify.php"; 
+require_once "../report/classify.php"; 
 
 header('Content-Type: application/json');
 

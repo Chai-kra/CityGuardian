@@ -38,13 +38,13 @@ if ($_SESSION['role'] !== 'admin') {
         <ul class="nav-menu">
 
             <li class="nav-item">
-                <a href="caseReview.php" class="nav-link">
+                <a href="../report/caseReview.php" class="nav-link">
                     Case Review
                 </a>
             </li>
 
             <li class="nav-item">
-                <a href="statistics.php" class="nav-link">
+                <a href="../report/statistics.php" class="nav-link">
                     Statistics
                 </a>
             </li>

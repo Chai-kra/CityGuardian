@@ -31,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($stmt->execute()) {
                 echo "<script>
                         alert('Registration successful!');
-                        window.location='LogIn.php';
+                        window.location='../user/LogIn.php';
                       </script>";
                 exit();
             } else {
@@ -88,7 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <div class="login-link">
 <p>Already have an account?
-<a href="LogIn.php">Log In</a>
+<a href="../user/LogIn.php">Log In</a>
 </p>
 </div>
 

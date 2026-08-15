@@ -37,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     echo "<script>
             alert('Password reset successful. You can now login.');
-            window.location='LogIn.php';
+            window.location='../user/LogIn.php';
           </script>";
     exit();
 

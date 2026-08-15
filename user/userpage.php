@@ -196,7 +196,7 @@ function switchPage(page) {
 
     } else if (page === 'logout') {
 
-        window.location.href = "logout.php";
+        window.location.href = "../user/logout.php";
 
     }
 }

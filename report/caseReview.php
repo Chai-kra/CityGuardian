@@ -55,11 +55,11 @@ $result = $conn->query($sql);
 
         <ul class="nav-menu">
             <li class="nav-item">
-                <a href="caseReview.php" class="nav-link">Case Review</a>
+                <a href="../report/caseReview.php" class="nav-link">Case Review</a>
             </li>
 
             <li class="nav-item">
-                <a href="statistics.php" class="nav-link">Statistics</a>
+                <a href="../report/statistics.php" class="nav-link">Statistics</a>
             </li>
 
             <li class="nav-item">

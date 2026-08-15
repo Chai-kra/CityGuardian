@@ -1,8 +1,13 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
-    header("Location: user/LogIn.php");
+// Fixed: this used to require role to be EXACTLY the string 'user', which
+// kicked out anyone whose role value wasn't literally that (blank, NULL,
+// or anything else non-admin). LogIn.php only distinguishes admin vs
+// everyone-else, so this page should do the same: let anyone logged in
+// who is NOT an admin through.
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] === 'admin') {
+    header("Location: ../user/LogIn.php");
     exit();
 }
 ?>
@@ -80,14 +85,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
 	
 
 </style>
-    <button onclick="window.location.href='user/UserPage.php'" style="position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to User Page</button>
+    <button onclick="window.location.href='../user/userpage.php'" style="position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to User Page</button>
 </head>
 <body style="text-align:center;">
 	<h1>Smart Urban Issue Detection & Response System</h1>
     <h2>Submit a new issue</h2>
     <form
         id="reportForm"
-        action="user/upload.php"
+        action="upload.php"
         method="POST"
         enctype="multipart/form-data"
     >
@@ -107,7 +112,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
 	    <label for="input-file" id="drop-area">
     	    <input type="file" name="image" accept="image/*" id="input-file" hidden>
             <div id="img-view">
-        	    <img src="icon.png">
+        	    <img src="../Library/icon.png">
                 <p>Drag and drop or click here<br>to upload image</p>
                 <span>Upload any images from device</span>
             </div>
@@ -383,7 +388,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
         .then(response => response.text())
         .then(data => {
 
-            console.log("Upload response:", data); // 先加这行，方便debug
+            console.log("Upload response:", data);
 
             if(data.includes("successfully")){
                 message.style.color = "green";
@@ -393,15 +398,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
                 imageView.style.backgroundImage = "none";
                 imageView.style.border = "2px dashed #bbb5ff";
                 imageView.innerHTML =
-                '<img src="icon.png"><p>Drag and drop or click here<br>to upload image</p><span>Upload any images from device</span>';
+                '<img src="../Library/icon.png"><p>Drag and drop or click here<br>to upload image</p><span>Upload any images from device</span>';
                 mapMessage.textContent = "";
 
                 setTimeout(function() {
-                    window.location.href = "userpage.php";
+                    window.location.href = "../user/userpage.php";
                 }, 1500);
             } else {
                 message.style.color = "red";
-                message.textContent = data; // 显示PHP真正的错误信息
+                message.textContent = data;
             }
 
         })

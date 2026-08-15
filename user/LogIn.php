@@ -14,7 +14,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
         $_SESSION['error'] = "Please enter a valid email address.";
-        header("Location: LogIn.php");
+        header("Location: ../user/LogIn.php");
         exit();
 
     }
@@ -51,7 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
 
             $_SESSION['error'] = "Invalid email or password.";
-            header("Location: LogIn.php");
+            header("Location: ../user/LogIn.php");
             exit();
 
         }
@@ -59,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
 
         $_SESSION['error'] = "Invalid email or password.";
-        header("Location: LogIn.php");
+        header("Location: ../user/LogIn.php");
         exit();
 
     }
@@ -94,7 +94,7 @@ unset($_SESSION['error']);
 
 <div class="login-box">
 
-    <form action="LogIn.php" method="POST">
+    <form action="../user/LogIn.php" method="POST">
 
         <h1>Log In</h1>
 
@@ -145,7 +145,7 @@ unset($_SESSION['error']);
                 Remember me
             </label>
 
-            <a href="forgot_password.php">
+            <a href="../user/forgot_password.php">
                 Forgot Password?
             </a>
 
@@ -162,7 +162,7 @@ unset($_SESSION['error']);
             <p>
                 Don't have an account?
 
-                <a href="Register.php">
+                <a href="../user/Register.php">
                     Register
                 </a>
             </p>
