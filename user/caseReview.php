@@ -13,7 +13,7 @@ $settledCases = 30;
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Case Review</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=search" />
 </head>
@@ -25,10 +25,10 @@ $settledCases = 30;
             </a>
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="caseReview.html" class="nav-link">Case Review</a>
+                    <a href="caseReview.php" class="nav-link">Case Review</a>
                 </li>
                 <li class="nav-item">
-                    <a href="statistics.html" class="nav-link">Statistics</a>
+                    <a href="adminStatistics.html" class="nav-link">Statistics</a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">Admin</a>
