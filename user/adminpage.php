@@ -70,7 +70,10 @@ $statisticsHtml = <<<HTML
 
     <div class="chart-container">
 
-        <div class="chart"></div>
+        <div class="chart"
+            style="--settled: <?php echo $settledPercent; ?>%;
+                --underway: <?php echo $settledPercent + $underwayPercent; ?>%;">
+        </div>
 
         <div class="legend">
 
@@ -190,9 +193,9 @@ HTML;
             height: 300px;
             border-radius: 50%;
             background: conic-gradient(
-                #71ff71 0% <?php echo $settledPercent; ?>%,
-                #7b7bff <?php echo $settledPercent; ?>% <?php echo $settledPercent + $underwayPercent; ?>%,
-                #ff8080 <?php echo $settledPercent + $underwayPercent; ?>% 100%
+                #71ff71 0% var(--settled),
+                #7b7bff var(--settled) var(--underway),
+                #ff8080 var(--underway) 100%
             );
         }
 

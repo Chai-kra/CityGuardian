@@ -13,7 +13,7 @@ $settledCases = 30;
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Case Review</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=search" />
 </head>
@@ -164,7 +164,35 @@ $settledCases = 30;
 
         const dropdowns = document.querySelectorAll(".dropdown");
 
-        dropdowns.forEach(dropdown =>)
+        dropdowns.forEach(dropdown => {
+            const select = dropdown.querySelector(".select");
+            const caret = dropdown.querySelector(".caret");
+            const menu = dropdown.querySelector(".menu");
+            const options = dropdown.querySelectorAll(".menu li");
+            const selected = dropdown.querySelector(".selected");
+
+            select.addEventListener("click", () => {
+                select.classList.toggle("select-clicked");
+                caret.classList.toggle("caret-rotate");
+                menu.classList.toggle("menu-open");
+            });
+
+            options.forEach(option => {
+                option.addEventListener("click", () => {
+                    selected.innerText = option.innerText;
+
+                    select.classList.remove("select-clicked");
+                    caret.classList.remove("caret-rotate");
+                    menu.classList.remove("menu-open");
+
+                    options.forEach(option => {
+                        option.classList.remove("active");
+                    });
+
+                    option.classList.add("active");
+                });
+            });
+        });
     </script>
 </body>
 

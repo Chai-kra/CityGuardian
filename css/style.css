@@ -598,7 +598,7 @@ a {
     background: #2a2d35;
 }
 
-.active {
+.menu li.active {
     background: #23242a;
 }
 
@@ -680,7 +680,7 @@ a {
     padding: 20px 45px 20px 45px;
 }
 
-.collapsible:after {
+.collapsible::after {
     content: "\002B";
     color: #fff;
     font-weight: bold;
@@ -688,7 +688,7 @@ a {
     margin-left: 5px;
 }
 
-.active:after {
+.active::after {
     content: "\2212";
 }
 
