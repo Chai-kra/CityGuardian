@@ -1,47 +1,36 @@
 <?php
 include "../db.php";
-
-
 session_start();
 
-// Make sure user is logged in
 if (!isset($_SESSION['id'])) {
     header("Location: ../user/LogIn.php");
     exit();
 }
 
-// Get current user's information
 $user_id = $_SESSION['id'];
 
 $sql = "SELECT * FROM users WHERE id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
 
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
+if (!$user) {
+    exit("User not found.");
+}
 
-// Get reports uploaded by this user
-$sql = "SELECT * FROM reports WHERE user_id = ? ORDER BY report_id DESC";
-
+$sql = "SELECT * FROM reports WHERE user_id = ? ORDER BY report_id ASC";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-
 $reports_result = $stmt->get_result();
-if (!$user) {
-    echo "User not found.";
-    exit();
-}
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>User Page</title>
 
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
@@ -49,7 +38,6 @@ if (!$user) {
     <style>
         body {
             margin: 0;
-            padding: 0;
             font-family: Arial, sans-serif;
             background-color: #e0e0e0;
         }
@@ -82,8 +70,12 @@ if (!$user) {
             padding: 5px 0;
         }
 
-        .nav-links button.active {
+        .nav-links button.active,
+        .nav-links button:hover {
             color: white;
+        }
+
+        .nav-links button.active {
             border-bottom: 2px solid white;
         }
 
@@ -93,8 +85,24 @@ if (!$user) {
 
         .report-container {
             margin: 10px;
-            padding: 10px;
+            padding: 20px;
             background-color: #a7c6ff;
+            border-radius: 8px;
+        }
+
+        .report-container img {
+            max-width: 300px;
+            border-radius: 5px;
+        }
+
+        .submit-button {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 18px;
+            background-color: #1a237e;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -104,129 +112,109 @@ if (!$user) {
 <div class="container">
 
     <header class="navbar">
-
         <div class="brand">
-            <i class='bx bxs-user'></i>
+            <i class="bx bxs-user"></i>
             User Page
         </div>
 
         <div class="nav-links">
-            <button class="active" id="btn-home" onclick="switchPage('home')">
-                Home
-            </button>
-
-            <button id="btn-profile" onclick="switchPage('profile')">
-                Profile
-            </button>
-
-            <button id="btn-settings" onclick="switchPage('settings')">
-                Settings
-            </button>
-
-            <button id="btn-logout" onclick="switchPage('logout')">
-                Logout
-            </button>
+            <button class="active" id="btn-report" onclick="switchPage('report')">Reports</button>
+            <button id="btn-profile" onclick="switchPage('profile')">Profile</button>
+            <button id="btn-settings" onclick="switchPage('settings')">Settings</button>
+            <button id="btn-logout" onclick="switchPage('logout')">Logout</button>
         </div>
-
     </header>
 
     <main class="main-container">
 
         <?php if ($reports_result->num_rows > 0): ?>
 
-    <?php while ($report = $reports_result->fetch_assoc()): ?>
+            <?php $report_number = 1; ?>
 
-        <div class="report-container">
+            <?php while ($report = $reports_result->fetch_assoc()): ?>
 
-            <h2>
-                <?php echo htmlspecialchars($report['issue_type'] ?? 'Report'); ?>
-            </h2>
+                <div class="report-container">
 
-            <p>
-                <strong>Location:</strong>
-                <?php echo htmlspecialchars($report['location'] ?? 'Not provided'); ?>
-            </p>
+                    <h2>Report <?php echo $report_number; ?></h2>
 
-            <p>
-                <strong>Description:</strong>
-                <?php echo htmlspecialchars($report['description'] ?? 'Not provided'); ?>
-            </p>
+                    <p>
+                        <strong>Issue Type:</strong>
+                        <?php echo htmlspecialchars($report['issue_type'] ?? 'Not provided'); ?>
+                    </p>
 
-            <?php if (!empty($report['image'])): ?>
+                    <p>
+                        <strong>Location:</strong>
+                        <?php echo htmlspecialchars($report['location'] ?? 'Not provided'); ?>
+                    </p>
 
-                <p>
-                    <strong>Report Image:</strong>
-                </p>
+                    <p>
+                        <strong>Description:</strong>
+                        <?php echo htmlspecialchars($report['description'] ?? 'Not provided'); ?>
+                    </p>
 
-                <img
-                    src="../uploads/<?php echo htmlspecialchars($report['image']); ?>"
-                    width="300"
-                    alt="Report Image"
-                >
+                    <?php if (!empty($report['image'])): ?>
+                        <p><strong>Report Image:</strong></p>
+                        <img src="../uploads/<?php echo htmlspecialchars($report['image']); ?>">
+                    <?php endif; ?>
 
-            <?php endif; ?>
+                    <p>
+                        <strong>AI Priority:</strong>
+                        <?php echo htmlspecialchars($report['ai_priority'] ?? 'Not analysed'); ?>
+                    </p>
 
-            <p>
-                <strong>Status:</strong>
-                <?php echo htmlspecialchars($report['status'] ?? 'Pending'); ?>
-            </p>
+                    <p>
+                        <strong>Status:</strong>
+                        <?php echo htmlspecialchars($report['status'] ?? 'Pending'); ?>
+                    </p>
 
-            <p>
-                <strong>Submitted:</strong>
-                <?php echo htmlspecialchars($report['created_at'] ?? ''); ?>
-            </p>
+                    <p>
+                        <strong>Submitted:</strong>
+                        <?php echo htmlspecialchars($report['created_at'] ?? ''); ?>
+                    </p>
 
-        </div>
+                </div>
 
-    <?php endwhile; ?>
+                <?php $report_number++; ?>
 
-<?php else: ?>
+            <?php endwhile; ?>
 
-    <div class="report-container">
-        <h2>No Reports Yet</h2>
-        <p>You have not uploaded any reports.</p>
-    </div>
+        <?php else: ?>
 
-<?php endif; ?>
+            <div class="report-container">
+                <h2>No Reports Yet</h2>
+                <p>You have not uploaded any reports.</p>
+            </div>
+
+        <?php endif; ?>
+
+        <a href="../report/ReportPage.php" class="submit-button">
+            <i class="bx bx-plus"></i>
+            Submit New Report
+        </a>
 
     </main>
 
 </div>
 
-
 <script>
-
 function switchPage(page) {
 
     const mainContainer = document.querySelector('.main-container');
 
-    const btnHome = document.getElementById('btn-home');
+    const btnReport = document.getElementById('btn-report');
     const btnProfile = document.getElementById('btn-profile');
     const btnSettings = document.getElementById('btn-settings');
     const btnLogout = document.getElementById('btn-logout');
 
-    btnHome.classList.remove('active');
+    btnReport.classList.remove('active');
     btnProfile.classList.remove('active');
     btnSettings.classList.remove('active');
     btnLogout.classList.remove('active');
 
-    if (page === 'home') {
+    if (page === 'report') {
 
-        btnHome.classList.add('active');
-
-        mainContainer.innerHTML = `
-            <div class="report-container">
-                <h2>Report 1</h2>
-            </div>
-
-            <div class="report-container">
-                <h2>Report 2</h2>
-            </div>
-
-            <div class="report-container">
-                <h2>Report 3</h2>
-            </div>
-        `;
+        btnReport.classList.add('active');
+        location.reload();
 
     } else if (page === 'profile') {
 
@@ -235,7 +223,7 @@ function switchPage(page) {
         mainContainer.innerHTML = `
             <div class="report-container">
                 <h2>Profile Information</h2>
-                <p>Email: <?php echo htmlspecialchars($user['email']); ?></p>
+                <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
             </div>
         `;
 
@@ -246,6 +234,7 @@ function switchPage(page) {
         mainContainer.innerHTML = `
             <div class="report-container">
                 <h2>Settings</h2>
+                <p>Account settings will appear here.</p>
             </div>
         `;
 
@@ -255,7 +244,6 @@ function switchPage(page) {
 
     }
 }
-
 </script>
 
 </body>
