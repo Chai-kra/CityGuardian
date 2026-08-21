@@ -1,16 +1,17 @@
 <?php
 include "../db.php";
 
+
 session_start();
 
 // Make sure user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: LogIn.php");
+if (!isset($_SESSION['id'])) {
+    header("Location: ../user/LogIn.php");
     exit();
 }
 
 // Get current user's information
-$user_id = $_SESSION['user_id'];
+$user_id = $_SESSION['id'];
 
 $sql = "SELECT * FROM users WHERE id = ?";
 $stmt = $conn->prepare($sql);
@@ -19,6 +20,11 @@ $stmt->execute();
 
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
+
+if (!$user) {
+    echo "User not found.";
+    exit();
+}
 ?>
 
 <!DOCTYPE html>

@@ -2,6 +2,7 @@
 session_start();
 include "../db.php";
 
+// Check login
 if (!isset($_SESSION['id'])) {
     echo "Please login first.";
     exit();
@@ -12,17 +13,19 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit();
 }
 
-$user_id = $_SESSION['id'];
-
+// Get form data
 $location = $_POST['location'] ?? '';
 $description = $_POST['ai_description'] ?? '';
-$latitude = $_POST['latitude'] ?? null;
-$longitude = $_POST['longitude'] ?? null;
 
 if (empty($location) || empty($description)) {
     echo "Location and description are required.";
     exit();
 }
+
+
+// =========================
+// UPLOAD IMAGE
+// =========================
 
 $imageName = '';
 
@@ -46,12 +49,23 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     }
 }
 
-$status = "Action Needed";
-$priority = "Medium";
+
+// =========================
+// DEFAULT VALUES
+// =========================
+
+$issue_type = "General";
+$ai_description = $description;
+$status = "Pending";
+
+
+// =========================
+// INSERT REPORT
+// =========================
 
 $sql = "INSERT INTO reports
-        (id, location, description, latitude, longitude, image, status, priority)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        (issue_type, location, description, image, ai_description, status)
+        VALUES (?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 
@@ -61,21 +75,24 @@ if (!$stmt) {
 }
 
 $stmt->bind_param(
-    "issddsss",
-    $id,
+    "ssssss",
+    $issue_type,
     $location,
     $description,
-    $latitude,
-    $longitude,
     $imageName,
-    $status,
-    $priority
+    $ai_description,
+    $status
 );
 
+
 if ($stmt->execute()) {
+
     echo "Report submitted successfully!";
+
 } else {
+
     echo "Database error: " . $stmt->error;
+
 }
 
 $stmt->close();

@@ -1,12 +1,13 @@
 <?php
 session_start();
+include "../db.php";
 
 // Fixed: this used to require role to be EXACTLY the string 'user', which
 // kicked out anyone whose role value wasn't literally that (blank, NULL,
 // or anything else non-admin). LogIn.php only distinguishes admin vs
 // everyone-else, so this page should do the same: let anyone logged in
 // who is NOT an admin through.
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] === 'admin') {
+if (!isset($_SESSION['id']) || $_SESSION['role'] === 'admin') {
     header("Location: ../user/LogIn.php");
     exit();
 }
@@ -381,7 +382,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] === 'admin') {
             formData.append("image", inputFile.files[0]);
         }
 
-        fetch("upload.php",{
+        fetch("../report/upload.php",{
             method:"POST",
             body:formData
         })

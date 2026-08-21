@@ -35,14 +35,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Prevent session fixation by regenerating the session ID on login
             session_regenerate_id(true);
 
-            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['id'] = $user['id'];
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role'];
 
             $loginSuccess = true;
 
             if ($user['role'] === 'admin') {
-                $redirectPage = "caseReview.php";
+                $redirectPage = "../user/caseReview.php";
             } else {
                 // ReportPage.php lives in report/, not user/
                 $redirectPage = "../report/ReportPage.php";
