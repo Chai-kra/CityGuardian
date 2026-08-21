@@ -2,7 +2,7 @@
 session_start();
 include "../db.php";
 
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['id'])) {
     echo "Please login first.";
     exit();
 }
@@ -12,7 +12,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = $_SESSION['id'];
 
 $location = $_POST['location'] ?? '';
 $description = $_POST['ai_description'] ?? '';
@@ -50,7 +50,7 @@ $status = "Action Needed";
 $priority = "Medium";
 
 $sql = "INSERT INTO reports
-        (user_id, location, description, latitude, longitude, image, status, priority)
+        (id, location, description, latitude, longitude, image, status, priority)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
@@ -62,7 +62,7 @@ if (!$stmt) {
 
 $stmt->bind_param(
     "issddsss",
-    $user_id,
+    $id,
     $location,
     $description,
     $latitude,
