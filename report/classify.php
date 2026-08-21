@@ -15,6 +15,8 @@ function generateAIDescription($imagePath, $userLocation = '') {
         and any other detail a city department would need in order to fix it. 
         Use the location text provided (if any) to add context such as road name or neighbourhood, 
         but never invent details that are not visible in the image or present in the location text.
+
+        There are 6 possible issues: pothole, broken_streetlight, illegal_dumping, flooding, broken_trafficlight, damaged_public_facility.
  
         Respond ONLY with valid JSON in this exact format, nothing else:
         {
