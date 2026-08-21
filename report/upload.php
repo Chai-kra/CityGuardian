@@ -1,12 +1,13 @@
 <?php
 session_start();
+
 include "../db.php";
 
-// Check login
 if (!isset($_SESSION['id'])) {
-    echo "Please login first.";
-    exit();
+    die("User is not logged in. Session ID is missing.");
 }
+
+$user_id = $_SESSION['id'];
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     echo "Invalid request.";
@@ -64,8 +65,8 @@ $status = "Pending";
 // =========================
 
 $sql = "INSERT INTO reports
-        (issue_type, location, description, image, ai_description, status)
-        VALUES (?, ?, ?, ?, ?, ?)";
+        (user_id, issue_type, location, description, image, ai_description, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 
@@ -75,7 +76,8 @@ if (!$stmt) {
 }
 
 $stmt->bind_param(
-    "ssssss",
+    "issssss",
+    $user_id,
     $issue_type,
     $location,
     $description,

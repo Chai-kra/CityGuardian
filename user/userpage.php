@@ -21,6 +21,14 @@ $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
+// Get reports uploaded by this user
+$sql = "SELECT * FROM reports WHERE user_id = ? ORDER BY report_id DESC";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+
+$reports_result = $stmt->get_result();
 if (!$user) {
     echo "User not found.";
     exit();
@@ -124,21 +132,62 @@ if (!$user) {
 
     <main class="main-container">
 
-        <div class="report-container">
-            <h2>Welcome, <?php echo htmlspecialchars($user['email']); ?></h2>
-        </div>
+        <?php if ($reports_result->num_rows > 0): ?>
+
+    <?php while ($report = $reports_result->fetch_assoc()): ?>
 
         <div class="report-container">
-            <h2>Report 1</h2>
+
+            <h2>
+                <?php echo htmlspecialchars($report['issue_type'] ?? 'Report'); ?>
+            </h2>
+
+            <p>
+                <strong>Location:</strong>
+                <?php echo htmlspecialchars($report['location'] ?? 'Not provided'); ?>
+            </p>
+
+            <p>
+                <strong>Description:</strong>
+                <?php echo htmlspecialchars($report['description'] ?? 'Not provided'); ?>
+            </p>
+
+            <?php if (!empty($report['image'])): ?>
+
+                <p>
+                    <strong>Report Image:</strong>
+                </p>
+
+                <img
+                    src="../uploads/<?php echo htmlspecialchars($report['image']); ?>"
+                    width="300"
+                    alt="Report Image"
+                >
+
+            <?php endif; ?>
+
+            <p>
+                <strong>Status:</strong>
+                <?php echo htmlspecialchars($report['status'] ?? 'Pending'); ?>
+            </p>
+
+            <p>
+                <strong>Submitted:</strong>
+                <?php echo htmlspecialchars($report['created_at'] ?? ''); ?>
+            </p>
+
         </div>
 
-        <div class="report-container">
-            <h2>Report 2</h2>
-        </div>
+    <?php endwhile; ?>
 
-        <div class="report-container">
-            <h2>Report 3</h2>
-        </div>
+<?php else: ?>
+
+    <div class="report-container">
+        <h2>No Reports Yet</h2>
+        <p>You have not uploaded any reports.</p>
+    </div>
+
+<?php endif; ?>
 
     </main>
 
