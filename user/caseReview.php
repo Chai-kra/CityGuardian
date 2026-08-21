@@ -30,8 +30,13 @@ $settledCases = 30;
                 <li class="nav-item">
                     <a href="adminStatistics.html" class="nav-link">Statistics</a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item admin-menu-item">
                     <a href="#" class="nav-link">Admin</a>
+                    <div class="logout-dropdown">
+                        <a href="login.php" class="logout-btn">
+                            <i class='bx bx-log-out'></i> Logout
+                        </a>
+                    </div>
                 </li>
             </ul>
         </nav>
@@ -43,7 +48,6 @@ $settledCases = 30;
             <div class="card-container">
                 <div class="card">
                     <div class="card-content">
-                        <h3>Total</h3>
                         <h3>Total</h3>
                         <p>
                             <?php echo $totalCases; ?> cases
@@ -105,40 +109,112 @@ $settledCases = 30;
                 
             </div>
 
-            <div class="dropdown">
-                <div class="select">
-                    <span class="selected">Priority</span>
+            <div class="date-picker-container">
+                <div class="select date-select">
+                    <span class="selected" id="date-label">Choose Date</span>
                     <div class="caret"></div>
+                    <input type="date" id="case-date-picker" class="native-date-input" onchange="updateDateLabel(this)">
                 </div>
-                <ul class="menu">
-                    <li class="active">Priority</li>
-                    <li>Low</li>
-                    <li>Medium</li>
-                    <li>High</li>
-                    <li>Critical</li>
-                </ul>
                 
             </div>
         </div>
         
         <div class="caseReviewBox">
             <div class="sub-category">
-                <button class="collapsible">Action needed</button>
+                <button class="collapsible">
+                    <span>Action needed</span>
+                    <span class="case-count"><?php echo $actionNeededCases; ?></span>
+                </button>
                 <div class="content">
-                    <div class="inner-content">
-                        <p>report 1</p>
+                    <div class="inner-content report-list">
+                        <div class="report-card">
+                            <div class="report-info">
+                                <h4>Case #1024: Traffic Light Malfunction</h4>
+                                <p>Location: 5th Avenue & Main Street</p>
+                            </div>
+                            <div class="report-meta">
+                                <span class="badge critical">Critical</span>
+                                <span class="date">Aug 21, 2026</span>
+                            </div>
+                            <button class="view-btn">Review</button>
+                        </div>
+
+                        <!-- Report Card 2 -->
+                        <div class="report-card">
+                            <div class="report-info">
+                                <h4>Case #1025: Noise Complaint</h4>
+                                <p>Location: Downtown Plaza Center</p>
+                            </div>
+                            <div class="report-meta">
+                                <span class="badge medium">Medium</span>
+                                <span class="date">Aug 20, 2026</span>
+                            </div>
+                            <button class="view-btn">Review</button>
+                        </div>
                     </div> 
                 </div>
-                <button class="collapsible">Underway</button>
+                <button class="collapsible">
+                    <span>Underway</span>
+                    <span class="case-count"><?php echo $underwayCases; ?></span>
+                </button>
                 <div class="content">
-                    <div class="inner-content">
-                        <p>report 1</p>
+                    <div class="inner-content report-list">
+                        <div class="report-card">
+                            <div class="report-info">
+                                <h4>Case #1024: Traffic Light Malfunction</h4>
+                                <p>Location: 5th Avenue & Main Street</p>
+                            </div>
+                            <div class="report-meta">
+                                <span class="badge critical">Critical</span>
+                                <span class="date">Aug 21, 2026</span>
+                            </div>
+                            <button class="view-btn">Review</button>
+                        </div>
+
+                        <!-- Report Card 2 -->
+                        <div class="report-card">
+                            <div class="report-info">
+                                <h4>Case #1025: Noise Complaint</h4>
+                                <p>Location: Downtown Plaza Center</p>
+                            </div>
+                            <div class="report-meta">
+                                <span class="badge medium">Medium</span>
+                                <span class="date">Aug 20, 2026</span>
+                            </div>
+                            <button class="view-btn">Review</button>
+                        </div>
                     </div> 
                 </div>
-                <button class="collapsible">Settled</button>
+                <button class="collapsible">
+                    <span>Settled</span>
+                    <span class="case-count"><?php echo $settledCases; ?></span>
+                </button>
                 <div class="content">
-                    <div class="inner-content">
-                        <p>report 1</p>
+                    <div class="inner-content report-list">
+                        <div class="report-card">
+                            <div class="report-info">
+                                <h4>Case #1024: Traffic Light Malfunction</h4>
+                                <p>Location: 5th Avenue & Main Street</p>
+                            </div>
+                            <div class="report-meta">
+                                <span class="badge critical">Critical</span>
+                                <span class="date">Aug 21, 2026</span>
+                            </div>
+                            <button class="view-btn">Review</button>
+                        </div>
+
+                        <!-- Report Card 2 -->
+                        <div class="report-card">
+                            <div class="report-info">
+                                <h4>Case #1025: Noise Complaint</h4>
+                                <p>Location: Downtown Plaza Center</p>
+                            </div>
+                            <div class="report-meta">
+                                <span class="badge medium">Medium</span>
+                                <span class="date">Aug 20, 2026</span>
+                            </div>
+                            <button class="view-btn">Review</button>
+                        </div>
                     </div> 
                 </div>
             </div>
@@ -155,9 +231,19 @@ $settledCases = 30;
                 var content = this.nextElementSibling;
 
                 if(content.style.maxHeight){
+                    // 1. Immediately hide overflow before closing so it doesn't look messy
+                    content.style.overflow = "hidden";
                     content.style.maxHeight = null;
-                }else{
+                } else {
+                    // 2. Open the accordion
                     content.style.maxHeight = content.scrollHeight + "px";
+                    
+                    // 3. Wait for the 0.2s CSS animation to finish, then allow the cards to break out of the box!
+                    setTimeout(() => {
+                        if(content.style.maxHeight){
+                            content.style.overflow = "visible";
+                        }
+                    }, 200);
                 }
             });
         }
@@ -171,28 +257,68 @@ $settledCases = 30;
             const options = dropdown.querySelectorAll(".menu li");
             const selected = dropdown.querySelector(".selected");
 
-            select.addEventListener("click", () => {
-                select.classList.toggle("select-clicked");
-                caret.classList.toggle("caret-rotate");
-                menu.classList.toggle("menu-open");
+            // Toggles the dropdown menu open or closed
+            select.addEventListener("click", (e) => {
+                // Stop the click from bubbling up to the document listener immediately
+                e.stopPropagation();
+                toggleMenu();
             });
 
+            // Handles selecting an option from the menu
             options.forEach(option => {
                 option.addEventListener("click", () => {
                     selected.innerText = option.innerText;
-
-                    select.classList.remove("select-clicked");
-                    caret.classList.remove("caret-rotate");
-                    menu.classList.remove("menu-open");
-
-                    options.forEach(option => {
-                        option.classList.remove("active");
-                    });
-
+                    options.forEach(opt => opt.classList.remove("active"));
                     option.classList.add("active");
+                    closeMenu();
                 });
             });
+
+            // --- Helper Functions ---
+
+            const toggleMenu = () => {
+                const isOpen = menu.classList.contains("menu-open");
+                if (isOpen) {
+                    closeMenu();
+                } else {
+                    openMenu();
+                }
+            };
+
+            const openMenu = () => {
+                select.classList.add("select-clicked");
+                caret.classList.add("caret-rotate");
+                menu.classList.add("menu-open");
+                // Listen for clicks outside the dropdown
+                document.addEventListener("click", handleClickOutside);
+            };
+
+            const closeMenu = () => {
+                select.classList.remove("select-clicked");
+                caret.classList.remove("caret-rotate");
+                menu.classList.remove("menu-open");
+                // Stop listening for clicks outside
+                document.removeEventListener("click", handleClickOutside);
+            };
+
+            // The function that closes the menu if a click is detected outside
+            const handleClickOutside = (e) => {
+                if (!dropdown.contains(e.target)) {
+                    closeMenu();
+                }
+            };
         });
+
+        function updateDateLabel(input) {
+            const label = document.getElementById("date-label");
+            if (input.value) {
+                const [year, month, day] = input.value.split('-');
+                const formattedDate = `${day}/${month}/${year}`;
+                label.innerText = formattedDate;
+            } else {
+                label.innerText = "Choose Date";
+            }
+        }
     </script>
 </body>
 

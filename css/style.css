@@ -434,13 +434,17 @@ body{
 
 header {
     background: #111844;
+    width: 100%;
 }
 
 header .navbar {
     display: flex;
-    padding: 20px;
     align-items: center;
     justify-content: space-between;
+    padding: 40px 0 20px 0;
+    width: 92%; 
+    max-width: 1600px; 
+    margin: 0 auto; 
 }
 
 .navbar .nav-logo .logo-text {
@@ -461,6 +465,10 @@ header .navbar {
     transition: 0.3s ease;
 }
 
+.navbar .nav-menu li:last-child .nav-link {
+    margin-right: -10px; 
+}
+
 .navbar .nav-menu .nav-link:hover {
     color: #fff;
     background: transparent;
@@ -476,6 +484,64 @@ a {
     text-decoration: none;
 }
 
+.admin-menu-item {
+    position: relative; 
+}
+
+.logout-dropdown {
+    position: absolute;
+    top: 100%; /* Places it directly below the Admin link */
+    left: 50%;
+    transform: translateX(-50%) translateY(10px); 
+    padding-top: 15px;
+
+    /* Hiding mechanism */
+    opacity: 0;
+    visibility: hidden; 
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.admin-menu-item:hover .logout-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.admin-menu-item:hover .nav-link {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #ff4d4d; /* Red warning color */
+    color: #fff;
+    padding: 10px 18px;
+    border: 2px solid transparent; 
+    border-radius: 40px; /* Requested 40px radius */
+    font-size: 15px;
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3); /* Adds a subtle red glow */
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.logout-btn i {
+    font-size: 18px; /* Sizes the Boxicon perfectly */
+}
+
+/* Hover effect on the Logout button */
+.logout-btn:hover {
+    background: #e60000; 
+    transform: scale(1.05);
+}
+
 .title {
     text-align: center;
     padding: 20px;
@@ -483,20 +549,35 @@ a {
     font-size: 20px;
 }
 
+.card-container, 
+.filter-container, 
+.caseReviewBox {
+    width: 92%; 
+    max-width: 1600px; 
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .card-container {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 25px;
-    margin-top: 20px;
+    margin: 20px auto 0 auto; 
 }
 
 .card {
-    width: 325px;
+    width: 100%;
     background-color: transparent;
     border-radius: 10px;
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    transition: transform 0.3s ease, border-color 0.3s ease; 
+}
+
+.card:hover {
+    border-color: #fff;
+    transform: translateY(-10px); 
 }
 
 .card-content {
@@ -516,18 +597,27 @@ a {
 
 .filter-container {
     display: flex;
-    padding: 20px;
-    justify-content: center;
-    flex-wrap: wrap;
+    align-items: center; 
+    padding: 20px 0;
+    gap: 20px;
+    margin: 50px auto 0px auto;
 }
 
 .filter-container form {
-    flex: 1;
+    margin: 0; 
+    margin-right: auto;
+}
+
+.dropdown, 
+.date-picker-container {
+    position: relative;
+    display: inline-block;
+    margin: 0; 
 }
 
 .dropdown {
     position: relative;
-    margin: 20px;
+    margin: 0;
 }
 
 .dropdown * {
@@ -540,19 +630,24 @@ a {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid transparent;
     border-radius: 40px;
-    padding: 20px;
-    transition: background 0.3s;
+    padding: 14px 20px;
+    transition: all 0.3s ease;
+    font-size: 15px;
+    height: 54px;
+    box-sizing: border-box;
+    cursor: pointer;
+    min-width: 170px; 
+    gap: 15px;
 }
 
-.select-clicked {
-    border: 2px #26489a solid;
-    box-shadow: 0 0 0.8rem #26489a;
-}
-
-.select:hover {
-    background: #323741;
+.select:hover,
+.select-clicked,
+.select:focus-within {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .caret {
@@ -561,45 +656,85 @@ a {
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
     border-top: 6px solid #fff;
-    transition: 0.3s;
+    transition: transform 0.3s ease;
 }
 
-.caret-rotate {
+.select-clicked .caret,
+.select:focus-within .caret {
     transform: rotate(180deg);
+}
+
+.date-picker-container {
+    position: relative;
+    display: inline-block;
+    margin: 0;
+}
+
+.date-select {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.native-date-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; 
+    cursor: pointer;
+    z-index: 10;
+}
+
+.native-date-input::-webkit-calendar-picker-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
 }
 
 .menu {
     list-style: none;
-    padding: 0.2em 0.5em;
-    background: #323741;
-    border: 1px #363a43 solid;
-    box-shadow: 0 0.5em 1em rgba(0, 0, 0, 0.2);
-    border-radius: 0.5em;
-    color: #9fa5b5;
+    padding: 8px;
+    background: #111844;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.7);
     position: absolute;
-    top: 3em;
-    left: 50%;
+    top: 64px;
+    left: 0;
     width: 100%;
-    transform: translateX(-50%);
     opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     display: none;
-    transition: 0.2s;
-    z-index: 1;
+    z-index: 100;
 }
 
 .menu li {
-    padding: 0.7em 0.5em;
-    margin: 0.3em 0;
-    border-radius: 0.5em;
+    padding: 10px 16px;
+    border-radius: 8px;
     cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
 .menu li:hover {
-    background: #2a2d35;
+    background: rgba(255, 255, 255, 0.1); /* Glass-like highlight */
+    color: #fff;
 }
 
 .menu li.active {
-    background: #23242a;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-weight: 500;
 }
 
 .menu-open {
@@ -608,15 +743,17 @@ a {
 }
 
 .search {
-    margin: 20px;
+    margin: 0;
     width: max-content;
     display: flex;
     align-items: center;
-    padding: 14px;
+    padding: 14px 20px;
     border-radius: 40px;
     border: 2px solid rgba(255, 255, 255, 0.2);
     background: transparent;
     transition: background 0.3s, border 0.3s;
+    height: 54px;
+    box-sizing: border-box;
 }
 
 .search:focus-within {
@@ -632,6 +769,7 @@ a {
     outline: none;
     border: none;
     width: 300px;
+    line-height: 1; 
 }
 
 .search-input::placeholder,
@@ -647,7 +785,10 @@ a {
     color: #fff;
     border-radius: 10px;
     padding: 30px 40px;
-    margin: 40px;
+    margin: 15px auto 40px auto;
+    width: 92%;
+    max-width: 1600px;
+    box-sizing: border-box; 
 }
 
 
@@ -658,7 +799,7 @@ a {
 .collapsible {
     background: transparent;
     color: #fff;
-    padding: 20px 45px 20px 30px;
+    padding: 20px 30px;
     width: 100%;
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
@@ -667,6 +808,10 @@ a {
     font-size: 16px;
     margin: 18px 0 18px 0;
     transition: 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
 }
 
 .active, .collapsible:hover {
@@ -677,31 +822,127 @@ a {
     border-radius: 12px;
     font-size: 16px;
     color: #fff;
-    padding: 20px 45px 20px 45px;
 }
 
-.collapsible::after {
-    content: "\002B";
-    color: #fff;
-    font-weight: bold;
-    float: right;
-    margin-left: 5px;
+.collapsible span:first-child {
+    display: inline-block;
+    transition: transform 0.3s ease;
 }
 
-.active::after {
-    content: "\2212";
+.collapsible:hover span:first-child,
+.collapsible.active span:first-child {
+    /* If you used upward movement earlier, use translateY(-5px) */
+    /* If you used side movement earlier, use translateX(8px) */
+    transform: translateX(8px); 
+}
+
+.case-count {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 14px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: 0.3s ease;
+}
+
+/* 3. Make the badge invert colors when you hover or open the button! */
+.active .case-count, 
+.collapsible:hover .case-count {
+    background: #fff;
+    color: #111844;
 }
 
 .content {
-    padding: 0 18px;
+    padding: 0;
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.2s ease-out;
-    background: #f1f1f1;
+    background: transparent;
 }
 
 .inner-content {
-    padding: 18px;
+    padding: 20px 0;
+}
+
+.report-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px 0 30px 0;
+}
+
+.report-card {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px 20px;
+    transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+.report-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateX(8px); 
+}
+
+.report-info h4 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.report-info p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5); /* Dimmed subtext */
+}
+
+.report-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    margin-left: auto; /* Pushes meta and button to the right */
+    margin-right: 20px;
+}
+
+.date {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge.critical { background: rgba(255, 77, 77, 0.2); color: #ff4d4d; border: 1px solid #ff4d4d; }
+.badge.medium { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
+
+/* 7. Action Button */
+.view-btn {
+    background: transparent;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.view-btn:hover {
+    background: #fff;
+    color: #111844; /* Inverts color on hover */
 }
 
 .charts {
