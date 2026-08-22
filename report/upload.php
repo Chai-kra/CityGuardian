@@ -2,6 +2,8 @@
 session_start();
 
 include "../db.php";
+require_once "classify.php";
+require_once "department_mapping.php";
 
 if (!isset($_SESSION['id'])) {
     die("User is not logged in. Session ID is missing.");
@@ -14,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit();
 }
 
-// Get form data
+$issue = null;
 $location = $_POST['location'] ?? '';
 $description = $_POST['ai_description'] ?? '';
 
@@ -28,7 +30,7 @@ if (empty($location) || empty($description)) {
 // UPLOAD IMAGE
 // =========================
 
-$imageName = '';
+$imageName = "";
 
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 
@@ -55,9 +57,85 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 // DEFAULT VALUES
 // =========================
 
-$issue_type = "General";
-$ai_description = $description;
+$aiDescription = $description;
+$aiPriority = null;
+$aiDepartment = "DBKL Engineering Department";
+$aiConfidence = null;
+
 $status = "Pending";
+
+
+// =========================
+// AI CLASSIFICATION
+// =========================
+
+if ($imageName !== "") {
+
+    $result = classifyIssue(
+        $imagePath,
+        $description,
+        $location
+    );
+
+    if (isset($result['success'])) {
+
+        // AI description
+        $aiDescription = $result['data']['description'] ?? $description;
+
+
+        // AI priority
+        $priorityMap = [
+            'critical' => 'Critical',
+            'high' => 'High',
+            'medium' => 'Medium',
+            'low' => 'Low'
+        ];
+
+        $rawPriority = strtolower(
+            $result['data']['priority'] ?? ''
+        );
+
+        $aiPriority = $priorityMap[$rawPriority] ?? null;
+
+
+        // AI confidence
+        if (isset($result['data']['confidence'])) {
+
+            $aiConfidence = round(
+                $result['data']['confidence'] * 100,
+                2
+            );
+        }
+
+
+        // AI issue
+        $aiIssueType = $result['data']['issue'] ?? 'General';
+
+        $issue = $aiIssueType;
+
+
+        // Other AI information
+        $facilityType = $result['data']['facility_type'] ?? null;
+        $roadType = $result['data']['road_type'] ?? null;
+        $floodSource = $result['data']['flood_source'] ?? null;
+
+
+        // Determine department
+        $aiDepartment = determineDepartment(
+            $aiIssueType,
+            $facilityType,
+            $roadType,
+            $floodSource
+        );
+
+    } else {
+
+        error_log(
+            "AI classification failed: " .
+            json_encode($result)
+        );
+    }
+}
 
 
 // =========================
@@ -65,8 +143,19 @@ $status = "Pending";
 // =========================
 
 $sql = "INSERT INTO reports
-        (user_id, issue_type, location, description, image, ai_description, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)";
+(
+    user_id,
+    issue_type,
+    location,
+    description,
+    image,
+    ai_description,
+    ai_priority,
+    ai_department,
+    ai_confidence,
+    status
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 
@@ -75,14 +164,18 @@ if (!$stmt) {
     exit();
 }
 
+
 $stmt->bind_param(
-    "issssss",
+    "isssssssss",
     $user_id,
-    $issue_type,
+    $issue,
     $location,
     $description,
     $imageName,
-    $ai_description,
+    $aiDescription,
+    $aiPriority,
+    $aiDepartment,
+    $aiConfidence,
     $status
 );
 
@@ -97,6 +190,8 @@ if ($stmt->execute()) {
 
 }
 
+
 $stmt->close();
 $conn->close();
+
 ?>

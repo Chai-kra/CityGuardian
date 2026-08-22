@@ -154,7 +154,7 @@ $reports_result = $stmt->get_result();
 
                     <?php if (!empty($report['image'])): ?>
                         <p><strong>Report Image:</strong></p>
-                        <img src="../uploads/<?php echo htmlspecialchars($report['image']); ?>">
+                        <img src="../report/uploads/<?php echo htmlspecialchars($report['image']); ?>">
                     <?php endif; ?>
 
                     <p>
