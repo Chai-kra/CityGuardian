@@ -46,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $redirectPage = "../user/caseReview.php";
             } else {
                 // ReportPage.php lives in report/, not user/
-                $redirectPage = "../report/ReportPage.php";
+                $redirectPage = "../user/uploadpage.php";
             }
 
         } else {
