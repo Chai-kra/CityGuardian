@@ -125,7 +125,7 @@ h1 {
 
 <div class="container">
 
-<a href="../admin/caseReview.php" class="back-btn">← Back to Case Review</a>
+<a href="../user/caseReview.php" class="back-btn">← Back to Case Review</a>
 
 <h1>Report Details</h1>
 
