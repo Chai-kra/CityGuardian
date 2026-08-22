@@ -284,7 +284,7 @@ descriptionBox.disabled=true;
 const formData=new FormData();
 formData.append("image",file);
 formData.append("location",locationInput.value);
-fetch("analyze.php",{method:"POST",body:formData})
+fetch("../report/analyze.php",{method:"POST",body:formData})
 .then(response=>response.json())
 .then(result=>{
 descriptionBox.disabled=false;

@@ -54,278 +54,224 @@ foreach ($reports as $report) {
 </head>
 
 <body>
-<header>
-    <nav class="navbar">
-        <a href="#" class="nav-logo">
-        <h2 class="logo-text">AI City Guardian</h2>
-        </a>
-
-        <ul class="nav-menu">
-            <li class="nav-item">
-                <a href="caseReview.php" class="nav-link">Case Review</a>
+    <!-- =======================
+         SIDEBAR (LEFT COLUMN)
+    ======================== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="#" class="nav-logo">
+                <h2 class="logo-text">AI City Guardian</h2>
+            </a>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="sidebar-item active">
+                <a href="caseReview.php" class="sidebar-link">
+                    <i class='bx bxs-dashboard'></i>
+                    <span>Case Review</span>
+                </a>
             </li>
-
-            <li class="nav-item">
-                <a href="adminStatistics.php" class="nav-link">Statistics</a>
+            <li class="sidebar-item">
+                <a href="adminStatistics.php" class="sidebar-link">
+                    <i class='bx bx-bar-chart-alt-2'></i>
+                    <span>Statistics</span>
+                </a>
             </li>
-
-            <li class="nav-item admin-menu-item">
-                <a href="#" class="nav-link">Admin</a>
-                <div class="logout-dropdown">
-                    <a href="../user/LogIn.php" class="logout-btn">
-                        <i class='bx bx-log-out'></i>
-                        Logout
+        </ul>
+        <div class="sidebar-footer">
+            <ul class="sidebar-menu">
+                <li class="sidebar-item admin-menu-item">
+                     <a href="#" class="sidebar-link">
+                        <i class='bx bxs-user-circle'></i>
+                        <span>Admin</span>
                     </a>
+                    <div class="logout-dropdown">
+                        <a href="../user/logout.php" class="logout-btn">
+                            <i class='bx bx-log-out'></i>
+                            Logout
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </aside>
+
+<!-- =======================
+         MAIN CONTENT (RIGHT COLUMN)
+    ======================== -->
+    <div class="main-content">
+        <header class="main-header">
+            <div class="header-title">
+                <h1>Dashboard Overview</h1>
+                <p>Manage civic issues and track city maintenance</p>
+            </div>
+            <div class="header-actions">
+                 <div class="search">
+                    <span class="search-icon material-symbols-outlined">search</span>
+                    <input class="search-input" type="search" name="search" placeholder="Search issues, locations..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
                 </div>
-            </li>
-        </ul>
-    </nav>
-</header>
+                 <div class="dropdown">
+                    <div class="select">
+                        <span class="selected">Priority</span>
+                        <div class="caret"></div>
+                    </div>
+                    <ul class="menu">
+                        <li class="active">Priority</li>
+                        <li>Low</li>
+                        <li>Medium</li>
+                        <li>High</li>
+                        <li>Critical</li>
+                    </ul>
+                </div>
+                <div class="date-picker-container">
+                    <div class="select date-select">
+                        <span class="selected" id="date-label">Choose Date</span>
+                        <div class="caret"></div>
+                        <input type="date" id="case-date-picker" class="native-date-input" onchange="updateDateLabel(this)">
+                    </div>
+                </div>
+            </div>
+        </header>
 
-<main>
-    <div class="summary">
-        <h2 class="title">Case Review</h2>
+        <main>
+            <!-- Summary Cards -->
+            <div class="card-container">
+                <!-- Your 4 PHP summary cards go here -->
+                 <div class="card">
+                    <div class="card-content">
+                        <h3>Total</h3>
+                        <p><?php echo $totalCases; ?> cases</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-content">
+                        <h3>Action Needed</h3>
+                        <p><?php echo $actionNeededCases; ?> cases</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-content">
+                        <h3>Underway</h3>
+                        <p><?php echo $underwayCases; ?> cases</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-content">
+                        <h3>Settled</h3>
+                        <p><?php echo $settledCases; ?> cases</p>
+                    </div>
+                </div>
+            </div>
 
-        <p style="margin-bottom: 20px;">
-        Department:
-        <strong><?php echo htmlspecialchars($department); ?></strong>
-        </p>
+            <!-- Case Review Box -->
+            <div class="caseReviewBox">
+                <div class="sub-category">
+                    
+                    <!-- 1. Action Needed -->
+                    <button class="collapsible">
+                        <span>Action needed</span>
+                        <span class="case-count"><?php echo $actionNeededCases; ?></span>
+                    </button>
+                    <div class="content">
+                        <div class="inner-content report-list">
+                            <?php
+                            $hasPending = false;
+                            foreach ($reports as $report):
+                                if ($report['status'] !== 'Pending') {
+                                    continue;
+                                }
+                                $hasPending = true;
+                            ?>
+                            <div class="report-card">
+                                <div class="report-info">
+                                    <h4>Case #<?php echo htmlspecialchars($report['report_id']); ?>: <?php echo htmlspecialchars($report['issue_type']); ?></h4>
+                                    <p>Location: <?php echo htmlspecialchars($report['location']); ?></p>
+                                </div>
+                                <div class="report-meta">
+                                    <span class="badge <?php echo strtolower($report['ai_priority']); ?>"><?php echo htmlspecialchars($report['ai_priority']); ?></span>
+                                    <span class="date"><?php echo date("M d, Y", strtotime($report['created_at'])); ?></span>
+                                </div>
+                                <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">Review</button>
+                            </div>
+                            <?php endforeach; ?>
 
-        <div class="card-container">
-        <div class="card">
-        <div class="card-content">
-        <h3>Total</h3>
-        <p><?php echo $totalCases; ?> cases</p>
-        <a href="#" class="read-more">Read more</a>
-        </div>
-        </div>
+                            <?php if (!$hasPending): ?>
+                            <p class="no-reports">No pending reports.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-        <div class="card">
-        <div class="card-content">
-        <h3>Action Needed</h3>
-        <p><?php echo $actionNeededCases; ?> cases</p>
-        <a href="#" class="read-more">Read more</a>
-        </div>
-        </div>
+                    <!-- 2. Underway -->
+                    <button class="collapsible">
+                        <span>Underway</span>
+                        <span class="case-count"><?php echo $underwayCases; ?></span>
+                    </button>
+                    <div class="content">
+                        <div class="inner-content report-list">
+                            <?php
+                            $hasUnderway = false;
+                            foreach ($reports as $report):
+                                if ($report['status'] !== 'Assigned' && $report['status'] !== 'In Progress') {
+                                    continue;
+                                }
+                                $hasUnderway = true;
+                            ?>
+                            <div class="report-card">
+                                <div class="report-info">
+                                    <h4>Case #<?php echo htmlspecialchars($report['report_id']); ?>: <?php echo htmlspecialchars($report['issue_type']); ?></h4>
+                                    <p>Location: <?php echo htmlspecialchars($report['location']); ?></p>
+                                </div>
+                                <div class="report-meta">
+                                    <span class="badge <?php echo strtolower($report['ai_priority']); ?>"><?php echo htmlspecialchars($report['ai_priority']); ?></span>
+                                    <span class="date"><?php echo date("M d, Y", strtotime($report['created_at'])); ?></span>
+                                </div>
+                                <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">Review</button>
+                            </div>
+                            <?php endforeach; ?>
 
-        <div class="card">
-        <div class="card-content">
-        <h3>Underway</h3>
-        <p><?php echo $underwayCases; ?> cases</p>
-        <a href="#" class="read-more">Read more</a>
-        </div>
-        </div>
+                            <?php if (!$hasUnderway): ?>
+                            <p class="no-reports">No reports currently underway.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-        <div class="card">
-        <div class="card-content">
-        <h3>Settled</h3>
-        <p><?php echo $settledCases; ?> cases</p>
-        <a href="#" class="read-more">Read more</a>
-        </div>
-        </div>
-        </div>
-        </div>
+                    <!-- 3. Settled -->
+                    <button class="collapsible">
+                        <span>Settled</span>
+                        <span class="case-count"><?php echo $settledCases; ?></span>
+                    </button>
+                    <div class="content">
+                        <div class="inner-content report-list">
+                            <?php
+                            $hasSettled = false;
+                            foreach ($reports as $report):
+                                if ($report['status'] !== 'Resolved') {
+                                    continue;
+                                }
+                                $hasSettled = true;
+                            ?>
+                            <div class="report-card">
+                                <div class="report-info">
+                                    <h4>Case #<?php echo htmlspecialchars($report['report_id']); ?>: <?php echo htmlspecialchars($report['issue_type']); ?></h4>
+                                    <p>Location: <?php echo htmlspecialchars($report['location']); ?></p>
+                                </div>
+                                <div class="report-meta">
+                                    <span class="badge <?php echo strtolower($report['ai_priority']); ?>"><?php echo htmlspecialchars($report['ai_priority']); ?></span>
+                                    <span class="date"><?php echo date("M d, Y", strtotime($report['created_at'])); ?></span>
+                                </div>
+                                <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">Review</button>
+                            </div>
+                            <?php endforeach; ?>
 
-        <div class="filter-container">
-        <form action="" method="GET">
-        <div class="search">
-        <span class="search-icon material-symbols-outlined">search</span>
-        <input class="search-input" type="search" name="search" placeholder="Search case..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-        </div>
-        </form>
+                            <?php if (!$hasSettled): ?>
+                            <p class="no-reports">No resolved reports.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-        <div class="dropdown">
-        <div class="select">
-        <span class="selected">Priority</span>
-        <div class="caret"></div>
-        </div>
-
-        <ul class="menu">
-        <li class="active">Priority</li>
-        <li>Low</li>
-        <li>Medium</li>
-        <li>High</li>
-        <li>Critical</li>
-        </ul>
-        </div>
-
-        <div class="date-picker-container">
-        <div class="select date-select">
-        <span class="selected" id="date-label">Choose Date</span>
-        <div class="caret"></div>
-        <input type="date" id="case-date-picker" class="native-date-input" onchange="updateDateLabel(this)">
-        </div>
-        </div>
-        </div>
-
-        <div class="caseReviewBox">
-        <div class="sub-category">
-
-        <button class="collapsible">
-        <span>Action needed</span>
-        <span class="case-count"><?php echo $actionNeededCases; ?></span>
-        </button>
-
-        <div class="content">
-        <div class="inner-content report-list">
-        <?php
-        $hasPending = false;
-
-        foreach ($reports as $report):
-            if ($report['status'] !== 'Pending') {
-                continue;
-            }
-
-            $hasPending = true;
-        ?>
-
-        <div class="report-card">
-        <div class="report-info">
-        <h4>
-        Case #<?php echo htmlspecialchars($report['report_id']); ?>:
-        <?php echo htmlspecialchars($report['issue_type']); ?>
-        </h4>
-
-        <p>
-        Location:
-        <?php echo htmlspecialchars($report['location']); ?>
-        </p>
-        </div>
-
-        <div class="report-meta">
-        <span class="badge <?php echo strtolower($report['ai_priority']); ?>">
-        <?php echo htmlspecialchars($report['ai_priority']); ?>
-        </span>
-
-        <span class="date">
-        <?php echo date("M d, Y", strtotime($report['created_at'])); ?>
-        </span>
-        </div>
-
-        <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
-        Review
-        </button>
-        </div>
-
-        <?php endforeach; ?>
-
-        <?php if (!$hasPending): ?>
-        <p class="no-reports">No pending reports.</p>
-        <?php endif; ?>
-        </div>
-        </div>
-
-        <button class="collapsible">
-        <span>Underway</span>
-        <span class="case-count"><?php echo $underwayCases; ?></span>
-        </button>
-
-        <div class="content">
-        <div class="inner-content report-list">
-        <?php
-        $hasUnderway = false;
-
-        foreach ($reports as $report):
-            if ($report['status'] !== 'Assigned' && $report['status'] !== 'In Progress') {
-                continue;
-            }
-
-            $hasUnderway = true;
-        ?>
-
-        <div class="report-card">
-        <div class="report-info">
-        <h4>
-        Case #<?php echo htmlspecialchars($report['report_id']); ?>:
-        <?php echo htmlspecialchars($report['issue_type']); ?>
-        </h4>
-
-        <p>
-        Location:
-        <?php echo htmlspecialchars($report['location']); ?>
-        </p>
-        </div>
-
-        <div class="report-meta">
-        <span class="badge <?php echo strtolower($report['ai_priority']); ?>">
-        <?php echo htmlspecialchars($report['ai_priority']); ?>
-        </span>
-
-        <span class="date">
-        <?php echo date("M d, Y", strtotime($report['created_at'])); ?>
-        </span>
-        </div>
-
-        <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
-        Review
-        </button>
-        </div>
-
-        <?php endforeach; ?>
-
-        <?php if (!$hasUnderway): ?>
-        <p class="no-reports">No reports currently underway.</p>
-        <?php endif; ?>
-        </div>
-        </div>
-
-        <button class="collapsible">
-        <span>Settled</span>
-        <span class="case-count"><?php echo $settledCases; ?></span>
-        </button>
-
-        <div class="content">
-        <div class="inner-content report-list">
-        <?php
-        $hasSettled = false;
-
-        foreach ($reports as $report):
-            if ($report['status'] !== 'Resolved') {
-                continue;
-            }
-
-            $hasSettled = true;
-        ?>
-
-        <div class="report-card">
-        <div class="report-info">
-        <h4>
-        Case #<?php echo htmlspecialchars($report['report_id']); ?>:
-        <?php echo htmlspecialchars($report['issue_type']); ?>
-        </h4>
-
-        <p>
-        Location:
-        <?php echo htmlspecialchars($report['location']); ?>
-        </p>
-        </div>
-
-        <div class="report-meta">
-        <span class="badge <?php echo strtolower($report['ai_priority']); ?>">
-        <?php echo htmlspecialchars($report['ai_priority']); ?>
-        </span>
-
-        <span class="date">
-        <?php echo date("M d, Y", strtotime($report['created_at'])); ?>
-        </span>
-        </div>
-
-        <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
-        Review
-        </button>
-        </div>
-
-        <?php endforeach; ?>
-
-        <?php if (!$hasSettled): ?>
-        <p class="no-reports">No resolved reports.</p>
-        <?php endif; ?>
-        </div>
-        </div>
-
-        </div>
+                </div>
+            </div>
+        </main>
     </div>
-</main>
 
 <script>
 var coll = document.getElementsByClassName("collapsible");
