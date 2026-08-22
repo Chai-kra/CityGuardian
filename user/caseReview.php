@@ -28,7 +28,7 @@ $settledCases = 30;
                     <a href="caseReview.php" class="nav-link">Case Review</a>
                 </li>
                 <li class="nav-item">
-                    <a href="adminStatistics.html" class="nav-link">Statistics</a>
+                    <a href="adminStatistics.php" class="nav-link">Statistics</a>
                 </li>
                 <li class="nav-item admin-menu-item">
                     <a href="#" class="nav-link">Admin</a>
