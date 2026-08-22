@@ -1008,3 +1008,239 @@ a {
 .legends span:nth-child(3)::before {
     background-color:green;
 }
+
+.image {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 20px 0; /* Adds breathing room above and below */
+}
+
+#drop-area {
+    width: 500px;
+    max-width: 90%; /* Keeps it fully responsive on mobile phones */
+    height: 280px;
+    cursor: pointer;
+    margin: 0 auto; /* Centers it perfectly */
+    padding: 0; /* Removes old padding that was making it wider */
+    box-sizing: border-box; /* Forces strict width */
+}
+
+#img-view {
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    border: 2px dashed rgba(255, 255, 255, 0.3); /* Subtle semi-transparent white border */
+    background: rgba(255, 255, 255, 0.02); /* Extremely subtle glass tint */
+    background-position: center;
+    background-size: cover;
+    
+    /* Using Flexbox to perfectly center everything inside */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+#drop-area:hover #img-view {
+    background: rgba(255, 255, 255, 0.08); /* Gets slightly brighter */
+    border-color: #fff; /* Border turns solid white */
+}
+
+#img-view img {
+    width: 70px; /* Sized down slightly for a modern, clean look */
+    margin-bottom: 15px;
+    margin-top: 0;
+    
+    /* PRO TIP: If your 'icon.png' is currently black, uncomment the line below to magically turn it white! */
+    /* filter: brightness(0) invert(1); */
+}
+
+#img-view p {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff; /* Crisp white text */
+    line-height: 1.4;
+    margin: 0;
+}
+
+#img-view span {
+    display: block;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5); /* Dimmed subtext to match your location/description inputs */
+    margin-top: 10px;
+}
+
+#description{
+	width: 500px;
+    max-width: 1000px;
+    min-height: 50px;
+    max-height: 100px;
+}
+
+
+#locationMap {
+    height: 250px;
+    width: 500px;
+    margin: 10px auto;
+    border-radius: 10px;
+    display: none;
+}
+
+h2 {
+    color: #fff;
+}
+
+label {
+    color: #fff;
+}
+
+input.input-box {
+    width: 500px;
+    max-width: 90%; 
+    padding: 14px 20px;
+    border-radius: 40px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #fff;
+    font-size: 15px;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    height: 54px;
+    box-sizing: border-box; /* Forces strict width */
+    outline: none; 
+    margin: 10px auto 20px auto; 
+    display: block; 
+}
+
+/* Match the placeholder text color to the search bar */
+input.input-box::placeholder {
+    color: rgba(255, 255, 255, 0.5); 
+}
+
+/* The focus state when the user clicks to type */
+input.input-box:focus {
+    background: #0f153b;
+    border-color: #fff;
+}
+
+#description {
+    width: 500px;
+    max-width: 90%; 
+    min-height: 200px; 
+    padding: 14px 20px;
+    border-radius: 20px; 
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    resize: vertical; 
+    margin: 10px auto 20px auto;
+    box-sizing: border-box; /* Forces strict width */
+    display: block; 
+}
+
+/* The focus state when the user is editing the AI's description */
+#description:focus {
+    background: #0f153b;
+    border-color: #fff;
+}
+
+/* Matches the placeholder text color */
+#description::placeholder {
+    color: rgba(255, 255, 255, 0.5); 
+}
+
+.location-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    width: 500px;
+    max-width: 90%;
+    margin: 0 auto 20px auto;
+}
+
+.action-btn {
+    color: #fff;
+    border: none; /* Removed the border so it doesn't look like an input box */
+    padding: 14px 20px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; 
+}
+
+#autoLocateBtn {
+    flex: 1;
+    background: #2563eb; /* Bright, clickable blue */
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); /* Subtle blue glow */
+}
+
+#mapButton {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.15); /* Solid frosted grey/glass */
+}
+
+#mapButton:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+#autoLocateBtn:hover {
+    background: #1d4ed8; /* Darkens slightly on hover */
+    transform: translateY(-2px);
+}
+
+#autoLocateBtn, #mapButton {
+    flex: 1;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px); /* Slight lift */
+}
+
+.ai-btn {
+    width: 500px;
+    max-width: 90%;
+    margin: 10px auto 20px auto;
+    background: #10b981; /* Emerald green for AI */
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); /* Green glow */
+}
+
+.ai-btn:hover {
+    background: #059669;
+    transform: translateY(-2px);
+}
+
+.submit-btn {
+    width: 500px;
+    max-width: 90%;
+    display: block;
+    margin: 30px auto;
+    background: #fff;
+    color: #111844; /* Dark blue text to match background */
+    border: none;
+    padding: 16px 20px;
+    border-radius: 40px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+}
+
+.submit-btn:hover {
+    transform: translateY(-3px) scale(1.02); /* Satisfying "pop" when hovered */
+    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.4);
+}

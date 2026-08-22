@@ -19,77 +19,34 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] === 'admin') {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title> Citizen Report Portal </title>
+    <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-    
-<style>
-.image{
-	width: 100%;
-    min-height: 100yh;
-    display: flex;
-    justify-content: center;
-}
-
-#drop-area{
-	width: 500px;
-    height: 300px;
-    padding: 30px;
-    text-align: center;
-    border-radius: 20px;
-}
-
-#img-view{
-	width: 100%;
-    height: 100%;
-    border-radius: 20px;
-    border: 2px dashed #bbb5ff;
-    background: #f7f8ff;
-    background-position: center;
-    background-size: cover;
-}
-
-#img-view img{
-	width: 100px;
-    margin-top: 25px;
-}
-
-#img-view span{
-	display: block;
-    font-size: 12px;
-    color: #777;
-    margin-top: 15px;
-}
-
-#description{
-	width: 500px;
-    max-width: 1000px;
-    min-height: 50px;
-    max-height: 100px;
-}
-
-#location{
-	width: 500px;
-    max-width: 1000px;
-    padding: 8px;
-    margin-bottom: 8px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-#locationMap {
-    height: 250px;
-    width: 500px;
-    margin: 10px auto;
-    border-radius: 10px;
-    display: none;
-}
-    
-	
-
-</style>
-    <button onclick="window.location.href='../user/userpage.php'" style="position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to User Page</button>
 </head>
 <body style="text-align:center;">
-	<h1>Smart Urban Issue Detection & Response System</h1>
+    <header>
+        <nav class="navbar">
+            <a href="#" class="nav-logo">
+                <h2 class="logo-text">AI City Guardian</h2>
+            </a>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="caseReview.php" class="nav-link">Case Review</a>
+                </li>
+                <li class="nav-item">
+                    <a href="../user/userpage.php" class="nav-link">User Page</a>
+                </li>
+                <li class="nav-item admin-menu-item">
+                    <a href="#" class="nav-link">User</a>
+                    <div class="logout-dropdown">
+                        <a href="../user/logout.php" class="logout-btn">
+                            <i class='bx bx-log-out'></i>
+                            Logout
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
     <h2>Submit a new issue</h2>
     <form
         id="reportForm"
@@ -98,10 +55,12 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] === 'admin') {
         enctype="multipart/form-data"
     >
 
-    <label for="location" style="display: block; margin: 10px 0 5px 0;">Location</label>
-    <input type="text" id="location" name="location" placeholder="Enter your location here" required><br>
-    <button type="button" id="autoLocateBtn" style="margin: 8px 0px 12px 0; padding: 7px 14px; font-size: 13px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">📍 Use My Current Location</button>
-    <button type="button" id="mapButton" style="margin: 8px 0 12px 0; padding: 7px 14px; font-size: 13px; background-color: #2f80ed; color: white; border: none; border-radius: 5px; cursor: pointer;">Open in Google Maps</button>
+    <label for="location">Location</label>
+    <input class="input-box" type="text" id="location" name="location" placeholder="Enter your location here" required><br>
+    <div class="location-buttons">
+        <button type="button" id="autoLocateBtn" class="action-btn">📍 Use My Current Location</button>
+        <button type="button" id="mapButton" class="action-btn">🗺️ Open in Google Maps</button>
+    </div>
     <p id="mapMessage" style="margin: 0 0 10px 0; color: #444; font-size: 13px;"></p>
 
     <div id="locationMap"></div>
@@ -120,18 +79,15 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] === 'admin') {
         </label>
     </div>
 
-    <button type="button" id="analyzeButton" style="margin: 15px 0; padding: 8px 20px; font-size: 14px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
-        🤖 Analyze Image with AI
-    </button>
+    <button type="button" id="analyzeButton" class="action-btn ai-btn">🤖 Analyze Image with AI</button>
+
     <p id="analyzeMessage" style="margin: 0 0 10px 0; color: #444; font-size: 13px;"></p>
 
 
     <label for="description">Description</label><br>
-    <div style="display: inline-block; position: relative;">
-        <textarea name="ai_description" id="description" placeholder="Click 'Analyze Image with AI' above, then review or edit the description here..." required></textarea>
-    </div>
+    <textarea name="ai_description" id="description" placeholder="Click 'Analyze Image with AI' above, then review or edit the description here..." required></textarea>
 
-    <button type="submit" style="display: block; margin: 10px auto 0 auto; padding: 8px 20px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Submit Report</button>
+    <button type="submit" class="submit-btn">Submit Report</button>
     <p id="message" style="margin-top: 10px; color: green; font-weight: bold;"></p>
     </form>
 

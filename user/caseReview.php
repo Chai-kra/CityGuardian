@@ -55,276 +55,276 @@ foreach ($reports as $report) {
 
 <body>
 <header>
-<nav class="navbar">
-<a href="#" class="nav-logo">
-<h2 class="logo-text">AI City Guardian</h2>
-</a>
+    <nav class="navbar">
+        <a href="#" class="nav-logo">
+        <h2 class="logo-text">AI City Guardian</h2>
+        </a>
 
-<ul class="nav-menu">
-<li class="nav-item">
-<a href="caseReview.php" class="nav-link">Case Review</a>
-</li>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="caseReview.php" class="nav-link">Case Review</a>
+            </li>
 
-<li class="nav-item">
-<a href="adminStatistics.php" class="nav-link">Statistics</a>
-</li>
+            <li class="nav-item">
+                <a href="adminStatistics.php" class="nav-link">Statistics</a>
+            </li>
 
-<li class="nav-item admin-menu-item">
-<a href="#" class="nav-link">Admin</a>
-<div class="logout-dropdown">
-<a href="../user/LogIn.php" class="logout-btn">
-<i class='bx bx-log-out'></i>
-Logout
-</a>
-</div>
-</li>
-</ul>
-</nav>
+            <li class="nav-item admin-menu-item">
+                <a href="#" class="nav-link">Admin</a>
+                <div class="logout-dropdown">
+                    <a href="../user/LogIn.php" class="logout-btn">
+                        <i class='bx bx-log-out'></i>
+                        Logout
+                    </a>
+                </div>
+            </li>
+        </ul>
+    </nav>
 </header>
 
 <main>
-<div class="summary">
-<h2 class="title">Case Review</h2>
+    <div class="summary">
+        <h2 class="title">Case Review</h2>
 
-<p style="margin-bottom: 20px;">
-Department:
-<strong><?php echo htmlspecialchars($department); ?></strong>
-</p>
+        <p style="margin-bottom: 20px;">
+        Department:
+        <strong><?php echo htmlspecialchars($department); ?></strong>
+        </p>
 
-<div class="card-container">
-<div class="card">
-<div class="card-content">
-<h3>Total</h3>
-<p><?php echo $totalCases; ?> cases</p>
-<a href="#" class="read-more">Read more</a>
-</div>
-</div>
+        <div class="card-container">
+        <div class="card">
+        <div class="card-content">
+        <h3>Total</h3>
+        <p><?php echo $totalCases; ?> cases</p>
+        <a href="#" class="read-more">Read more</a>
+        </div>
+        </div>
 
-<div class="card">
-<div class="card-content">
-<h3>Action Needed</h3>
-<p><?php echo $actionNeededCases; ?> cases</p>
-<a href="#" class="read-more">Read more</a>
-</div>
-</div>
+        <div class="card">
+        <div class="card-content">
+        <h3>Action Needed</h3>
+        <p><?php echo $actionNeededCases; ?> cases</p>
+        <a href="#" class="read-more">Read more</a>
+        </div>
+        </div>
 
-<div class="card">
-<div class="card-content">
-<h3>Underway</h3>
-<p><?php echo $underwayCases; ?> cases</p>
-<a href="#" class="read-more">Read more</a>
-</div>
-</div>
+        <div class="card">
+        <div class="card-content">
+        <h3>Underway</h3>
+        <p><?php echo $underwayCases; ?> cases</p>
+        <a href="#" class="read-more">Read more</a>
+        </div>
+        </div>
 
-<div class="card">
-<div class="card-content">
-<h3>Settled</h3>
-<p><?php echo $settledCases; ?> cases</p>
-<a href="#" class="read-more">Read more</a>
-</div>
-</div>
-</div>
-</div>
+        <div class="card">
+        <div class="card-content">
+        <h3>Settled</h3>
+        <p><?php echo $settledCases; ?> cases</p>
+        <a href="#" class="read-more">Read more</a>
+        </div>
+        </div>
+        </div>
+        </div>
 
-<div class="filter-container">
-<form action="" method="GET">
-<div class="search">
-<span class="search-icon material-symbols-outlined">search</span>
-<input class="search-input" type="search" name="search" placeholder="Search case..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-</div>
-</form>
+        <div class="filter-container">
+        <form action="" method="GET">
+        <div class="search">
+        <span class="search-icon material-symbols-outlined">search</span>
+        <input class="search-input" type="search" name="search" placeholder="Search case..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+        </div>
+        </form>
 
-<div class="dropdown">
-<div class="select">
-<span class="selected">Priority</span>
-<div class="caret"></div>
-</div>
+        <div class="dropdown">
+        <div class="select">
+        <span class="selected">Priority</span>
+        <div class="caret"></div>
+        </div>
 
-<ul class="menu">
-<li class="active">Priority</li>
-<li>Low</li>
-<li>Medium</li>
-<li>High</li>
-<li>Critical</li>
-</ul>
-</div>
+        <ul class="menu">
+        <li class="active">Priority</li>
+        <li>Low</li>
+        <li>Medium</li>
+        <li>High</li>
+        <li>Critical</li>
+        </ul>
+        </div>
 
-<div class="date-picker-container">
-<div class="select date-select">
-<span class="selected" id="date-label">Choose Date</span>
-<div class="caret"></div>
-<input type="date" id="case-date-picker" class="native-date-input" onchange="updateDateLabel(this)">
-</div>
-</div>
-</div>
+        <div class="date-picker-container">
+        <div class="select date-select">
+        <span class="selected" id="date-label">Choose Date</span>
+        <div class="caret"></div>
+        <input type="date" id="case-date-picker" class="native-date-input" onchange="updateDateLabel(this)">
+        </div>
+        </div>
+        </div>
 
-<div class="caseReviewBox">
-<div class="sub-category">
+        <div class="caseReviewBox">
+        <div class="sub-category">
 
-<button class="collapsible">
-<span>Action needed</span>
-<span class="case-count"><?php echo $actionNeededCases; ?></span>
-</button>
+        <button class="collapsible">
+        <span>Action needed</span>
+        <span class="case-count"><?php echo $actionNeededCases; ?></span>
+        </button>
 
-<div class="content">
-<div class="inner-content report-list">
-<?php
-$hasPending = false;
+        <div class="content">
+        <div class="inner-content report-list">
+        <?php
+        $hasPending = false;
 
-foreach ($reports as $report):
-    if ($report['status'] !== 'Pending') {
-        continue;
-    }
+        foreach ($reports as $report):
+            if ($report['status'] !== 'Pending') {
+                continue;
+            }
 
-    $hasPending = true;
-?>
+            $hasPending = true;
+        ?>
 
-<div class="report-card">
-<div class="report-info">
-<h4>
-Case #<?php echo htmlspecialchars($report['report_id']); ?>:
-<?php echo htmlspecialchars($report['issue_type']); ?>
-</h4>
+        <div class="report-card">
+        <div class="report-info">
+        <h4>
+        Case #<?php echo htmlspecialchars($report['report_id']); ?>:
+        <?php echo htmlspecialchars($report['issue_type']); ?>
+        </h4>
 
-<p>
-Location:
-<?php echo htmlspecialchars($report['location']); ?>
-</p>
-</div>
+        <p>
+        Location:
+        <?php echo htmlspecialchars($report['location']); ?>
+        </p>
+        </div>
 
-<div class="report-meta">
-<span class="badge <?php echo strtolower($report['ai_priority']); ?>">
-<?php echo htmlspecialchars($report['ai_priority']); ?>
-</span>
+        <div class="report-meta">
+        <span class="badge <?php echo strtolower($report['ai_priority']); ?>">
+        <?php echo htmlspecialchars($report['ai_priority']); ?>
+        </span>
 
-<span class="date">
-<?php echo date("M d, Y", strtotime($report['created_at'])); ?>
-</span>
-</div>
+        <span class="date">
+        <?php echo date("M d, Y", strtotime($report['created_at'])); ?>
+        </span>
+        </div>
 
-<button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
-Review
-</button>
-</div>
+        <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
+        Review
+        </button>
+        </div>
 
-<?php endforeach; ?>
+        <?php endforeach; ?>
 
-<?php if (!$hasPending): ?>
-<p class="no-reports">No pending reports.</p>
-<?php endif; ?>
-</div>
-</div>
+        <?php if (!$hasPending): ?>
+        <p class="no-reports">No pending reports.</p>
+        <?php endif; ?>
+        </div>
+        </div>
 
-<button class="collapsible">
-<span>Underway</span>
-<span class="case-count"><?php echo $underwayCases; ?></span>
-</button>
+        <button class="collapsible">
+        <span>Underway</span>
+        <span class="case-count"><?php echo $underwayCases; ?></span>
+        </button>
 
-<div class="content">
-<div class="inner-content report-list">
-<?php
-$hasUnderway = false;
+        <div class="content">
+        <div class="inner-content report-list">
+        <?php
+        $hasUnderway = false;
 
-foreach ($reports as $report):
-    if ($report['status'] !== 'Assigned' && $report['status'] !== 'In Progress') {
-        continue;
-    }
+        foreach ($reports as $report):
+            if ($report['status'] !== 'Assigned' && $report['status'] !== 'In Progress') {
+                continue;
+            }
 
-    $hasUnderway = true;
-?>
+            $hasUnderway = true;
+        ?>
 
-<div class="report-card">
-<div class="report-info">
-<h4>
-Case #<?php echo htmlspecialchars($report['report_id']); ?>:
-<?php echo htmlspecialchars($report['issue_type']); ?>
-</h4>
+        <div class="report-card">
+        <div class="report-info">
+        <h4>
+        Case #<?php echo htmlspecialchars($report['report_id']); ?>:
+        <?php echo htmlspecialchars($report['issue_type']); ?>
+        </h4>
 
-<p>
-Location:
-<?php echo htmlspecialchars($report['location']); ?>
-</p>
-</div>
+        <p>
+        Location:
+        <?php echo htmlspecialchars($report['location']); ?>
+        </p>
+        </div>
 
-<div class="report-meta">
-<span class="badge <?php echo strtolower($report['ai_priority']); ?>">
-<?php echo htmlspecialchars($report['ai_priority']); ?>
-</span>
+        <div class="report-meta">
+        <span class="badge <?php echo strtolower($report['ai_priority']); ?>">
+        <?php echo htmlspecialchars($report['ai_priority']); ?>
+        </span>
 
-<span class="date">
-<?php echo date("M d, Y", strtotime($report['created_at'])); ?>
-</span>
-</div>
+        <span class="date">
+        <?php echo date("M d, Y", strtotime($report['created_at'])); ?>
+        </span>
+        </div>
 
-<button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
-Review
-</button>
-</div>
+        <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
+        Review
+        </button>
+        </div>
 
-<?php endforeach; ?>
+        <?php endforeach; ?>
 
-<?php if (!$hasUnderway): ?>
-<p class="no-reports">No reports currently underway.</p>
-<?php endif; ?>
-</div>
-</div>
+        <?php if (!$hasUnderway): ?>
+        <p class="no-reports">No reports currently underway.</p>
+        <?php endif; ?>
+        </div>
+        </div>
 
-<button class="collapsible">
-<span>Settled</span>
-<span class="case-count"><?php echo $settledCases; ?></span>
-</button>
+        <button class="collapsible">
+        <span>Settled</span>
+        <span class="case-count"><?php echo $settledCases; ?></span>
+        </button>
 
-<div class="content">
-<div class="inner-content report-list">
-<?php
-$hasSettled = false;
+        <div class="content">
+        <div class="inner-content report-list">
+        <?php
+        $hasSettled = false;
 
-foreach ($reports as $report):
-    if ($report['status'] !== 'Resolved') {
-        continue;
-    }
+        foreach ($reports as $report):
+            if ($report['status'] !== 'Resolved') {
+                continue;
+            }
 
-    $hasSettled = true;
-?>
+            $hasSettled = true;
+        ?>
 
-<div class="report-card">
-<div class="report-info">
-<h4>
-Case #<?php echo htmlspecialchars($report['report_id']); ?>:
-<?php echo htmlspecialchars($report['issue_type']); ?>
-</h4>
+        <div class="report-card">
+        <div class="report-info">
+        <h4>
+        Case #<?php echo htmlspecialchars($report['report_id']); ?>:
+        <?php echo htmlspecialchars($report['issue_type']); ?>
+        </h4>
 
-<p>
-Location:
-<?php echo htmlspecialchars($report['location']); ?>
-</p>
-</div>
+        <p>
+        Location:
+        <?php echo htmlspecialchars($report['location']); ?>
+        </p>
+        </div>
 
-<div class="report-meta">
-<span class="badge <?php echo strtolower($report['ai_priority']); ?>">
-<?php echo htmlspecialchars($report['ai_priority']); ?>
-</span>
+        <div class="report-meta">
+        <span class="badge <?php echo strtolower($report['ai_priority']); ?>">
+        <?php echo htmlspecialchars($report['ai_priority']); ?>
+        </span>
 
-<span class="date">
-<?php echo date("M d, Y", strtotime($report['created_at'])); ?>
-</span>
-</div>
+        <span class="date">
+        <?php echo date("M d, Y", strtotime($report['created_at'])); ?>
+        </span>
+        </div>
 
-<button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
-Review
-</button>
-</div>
+        <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">
+        Review
+        </button>
+        </div>
 
-<?php endforeach; ?>
+        <?php endforeach; ?>
 
-<?php if (!$hasSettled): ?>
-<p class="no-reports">No resolved reports.</p>
-<?php endif; ?>
-</div>
-</div>
+        <?php if (!$hasSettled): ?>
+        <p class="no-reports">No resolved reports.</p>
+        <?php endif; ?>
+        </div>
+        </div>
 
-</div>
-</div>
+        </div>
+    </div>
 </main>
 
 <script>
