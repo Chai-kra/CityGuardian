@@ -422,7 +422,7 @@ function updateDateLabel(input) {
 }
 
 function viewReport(reportId) {
-    window.location.href = "reportDetails.php?id=" + reportId;
+    window.location.href = "../report/ReportPage.php?id=" + reportId;
 }
 </script>
 </body>

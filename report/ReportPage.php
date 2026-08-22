@@ -2,418 +2,217 @@
 session_start();
 include "../db.php";
 
-// Fixed: this used to require role to be EXACTLY the string 'user', which
-// kicked out anyone whose role value wasn't literally that (blank, NULL,
-// or anything else non-admin). LogIn.php only distinguishes admin vs
-// everyone-else, so this page should do the same: let anyone logged in
-// who is NOT an admin through.
-if (!isset($_SESSION['id']) || $_SESSION['role'] === 'admin') {
+if (!isset($_SESSION['id'])) {
     header("Location: ../user/LogIn.php");
     exit();
 }
+
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    die("Invalid report ID.");
+}
+
+$reportId = intval($_GET['id']);
+
+$sql = "SELECT * FROM reports WHERE report_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $reportId);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    die("Report not found.");
+}
+
+$report = $result->fetch_assoc();
 ?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title> Citizen Report Portal </title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-    
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report Details</title>
+<link rel="stylesheet" href="/css/style.css">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 <style>
-.image{
-	width: 100%;
-    min-height: 100yh;
-    display: flex;
-    justify-content: center;
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f6fa;
 }
 
-#drop-area{
-	width: 500px;
-    height: 300px;
+.container {
+    width: 90%;
+    max-width: 900px;
+    margin: 40px auto;
+    background: white;
     padding: 30px;
-    text-align: center;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+h1 {
+    margin-bottom: 25px;
+}
+
+.detail {
+    margin-bottom: 18px;
+}
+
+.detail strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.detail p {
+    margin: 0;
+    color: #555;
+}
+
+.report-image {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
     border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
 }
 
-#img-view{
-	width: 100%;
-    height: 100%;
-    border-radius: 20px;
-    border: 2px dashed #bbb5ff;
-    background: #f7f8ff;
-    background-position: center;
-    background-size: cover;
+.critical {
+    background: #ffcccc;
+    color: #b30000;
 }
 
-#img-view img{
-	width: 100px;
-    margin-top: 25px;
+.high {
+    background: #ffd6cc;
+    color: #cc3300;
 }
 
-#img-view span{
-	display: block;
-    font-size: 12px;
-    color: #777;
-    margin-top: 15px;
+.medium {
+    background: #fff0b3;
+    color: #996600;
 }
 
-#description{
-	width: 500px;
-    max-width: 1000px;
-    min-height: 50px;
-    max-height: 100px;
+.low {
+    background: #d9f2d9;
+    color: #267326;
 }
 
-#location{
-	width: 500px;
-    max-width: 1000px;
-    padding: 8px;
-    margin-bottom: 8px;
-    border: 1px solid #ccc;
+.back-btn {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding: 8px 16px;
+    background: #5555ff;
+    color: white;
+    text-decoration: none;
     border-radius: 5px;
 }
 
-#locationMap {
-    height: 250px;
-    width: 500px;
-    margin: 10px auto;
-    border-radius: 10px;
-    display: none;
+.back-btn:hover {
+    background: #4444dd;
 }
-    
-	
-
 </style>
-    <button onclick="window.location.href='../user/userpage.php'" style="position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to User Page</button>
 </head>
-<body style="text-align:center;">
-	<h1>Smart Urban Issue Detection & Response System</h1>
-    <h2>Submit a new issue</h2>
-    <form
-        id="reportForm"
-        action="upload.php"
-        method="POST"
-        enctype="multipart/form-data"
-    >
 
-    <label for="location" style="display: block; margin: 10px 0 5px 0;">Location</label>
-    <input type="text" id="location" name="location" placeholder="Enter your location here" required><br>
-    <button type="button" id="autoLocateBtn" style="margin: 8px 0px 12px 0; padding: 7px 14px; font-size: 13px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">📍 Use My Current Location</button>
-    <button type="button" id="mapButton" style="margin: 8px 0 12px 0; padding: 7px 14px; font-size: 13px; background-color: #2f80ed; color: white; border: none; border-radius: 5px; cursor: pointer;">Open in Google Maps</button>
-    <p id="mapMessage" style="margin: 0 0 10px 0; color: #444; font-size: 13px;"></p>
+<body>
 
-    <div id="locationMap"></div>
+<div class="container">
 
-    <input type="hidden" id="latitude" name="latitude">
-    <input type="hidden" id="longitude" name="longitude">
+<a href="../admin/caseReview.php" class="back-btn">← Back to Case Review</a>
 
-    <div class="image">
-	    <label for="input-file" id="drop-area">
-    	    <input type="file" name="image" accept="image/*" id="input-file" hidden>
-            <div id="img-view">
-        	    <img src="../Library/icon.png">
-                <p>Drag and drop or click here<br>to upload image</p>
-                <span>Upload any images from device</span>
-            </div>
-        </label>
-    </div>
+<h1>Report Details</h1>
 
-    <button type="button" id="analyzeButton" style="margin: 15px 0; padding: 8px 20px; font-size: 14px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
-        🤖 Analyze Image with AI
-    </button>
-    <p id="analyzeMessage" style="margin: 0 0 10px 0; color: #444; font-size: 13px;"></p>
+<div class="detail">
+<strong>Case ID</strong>
+<p>#<?php echo htmlspecialchars($report['report_id']); ?></p>
+</div>
 
+<div class="detail">
+<strong>Issue Type</strong>
+<p><?php echo htmlspecialchars($report['issue_type'] ?? 'Not available'); ?></p>
+</div>
 
-    <label for="description">Description</label><br>
-    <div style="display: inline-block; position: relative;">
-        <textarea name="ai_description" id="description" placeholder="Click 'Analyze Image with AI' above, then review or edit the description here..." required></textarea>
-    </div>
+<div class="detail">
+<strong>Location</strong>
+<p><?php echo htmlspecialchars($report['location'] ?? 'Not available'); ?></p>
+</div>
 
-    <button type="submit" style="display: block; margin: 10px auto 0 auto; padding: 8px 20px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Submit Report</button>
-    <p id="message" style="margin-top: 10px; color: green; font-weight: bold;"></p>
-    </form>
+<div class="detail">
+<strong>Description</strong>
+<p><?php echo nl2br(htmlspecialchars($report['description'] ?? 'Not available')); ?></p>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<div class="detail">
+<strong>AI Description</strong>
+<p><?php echo nl2br(htmlspecialchars($report['ai_description'] ?? 'Not available')); ?></p>
+</div>
 
-    <script>
-    const dropArea = document.getElementById("drop-area");
-    const inputFile = document.getElementById("input-file");
-    const imageView = document.getElementById("img-view");
-    const reportForm = document.getElementById("reportForm");
-    const message = document.getElementById("message");
-    const locationInput = document.getElementById("location");
-    const mapButton = document.getElementById("mapButton");
-    const mapMessage = document.getElementById("mapMessage");
-    const descriptionBox = document.getElementById("description");
-    const analyzeButton = document.getElementById("analyzeButton");
-    const analyzeMessage = document.getElementById("analyzeMessage");
-    const autoLocateBtn = document.getElementById("autoLocateBtn");
-    const latitudeInput = document.getElementById("latitude");
-    const longitudeInput = document.getElementById("longitude");
-    const locationMapDiv = document.getElementById("locationMap");
+<div class="detail">
+<strong>AI Priority</strong>
+<p>
+<?php if (!empty($report['ai_priority'])): ?>
+<span class="badge <?php echo strtolower(htmlspecialchars($report['ai_priority'])); ?>">
+<?php echo htmlspecialchars($report['ai_priority']); ?>
+</span>
+<?php else: ?>
+Not available
+<?php endif; ?>
+</p>
+</div>
 
-    let map = null;
-    let marker = null;
-        
-    function uploadImage(){
-        let imgLink = URL.createObjectURL(inputFile.files[0]);
-        imageView.style.backgroundImage = `url(${imgLink})`;
-        imageView.textContent = "";
-        imageView.style.border = 0;
-    }
+<div class="detail">
+<strong>AI Department</strong>
+<p><?php echo htmlspecialchars($report['ai_department'] ?? 'Not assigned'); ?></p>
+</div>
 
-    dropArea.addEventListener("dragover", function(e){
-        e.preventDefault();
-    });
+<div class="detail">
+<strong>AI Confidence</strong>
+<p>
+<?php
+if ($report['ai_confidence'] !== null) {
+    echo htmlspecialchars($report['ai_confidence']) . "%";
+} else {
+    echo "Not available";
+}
+?>
+</p>
+</div>
 
+<div class="detail">
+<strong>Status</strong>
+<p><?php echo htmlspecialchars($report['status'] ?? 'Pending'); ?></p>
+</div>
 
-    inputFile.addEventListener("change", function(){
-        uploadImage();
-    });
+<div class="detail">
+<strong>Submitted On</strong>
+<p>
+<?php
+echo !empty($report['created_at'])
+    ? date("M d, Y h:i A", strtotime($report['created_at']))
+    : "Not available";
+?>
+</p>
+</div>
 
-    dropArea.addEventListener("drop", function(e){
-        e.preventDefault();
-        inputFile.files = e.dataTransfer.files;
-        uploadImage();
-    });
+<?php if (!empty($report['image'])): ?>
+<div class="detail">
+<strong>Image</strong>
+<img
+    class="report-image"
+    src="../<?php echo htmlspecialchars($report['image']); ?>"
+    alt="Report Image"
+>
+</div>
+<?php endif; ?>
 
-    analyzeButton.addEventListener("click", function(){
-        if(!inputFile.files[0]){
-            analyzeMessage.textContent = "Please upload an image first.";
-            analyzeMessage.style.color = "red";
-            return;
-        }
-        analyzeMessage.textContent = "";
-        analyzeImage(inputFile.files[0])
-    });
-
-    function analyzeImage(file){
-        analyzeButton.disabled = true;
-        analyzeMessage.textContent = "Analyzing image...";
-        analyzeMessage.style.color = "#444";
-        descriptionBox.value = "";
-        descriptionBox.disabled = true;
-
-        const formData = new FormData();
-        formData.append("image", file);
-        formData.append("location", locationInput.value)
-
-        fetch("analyze.php", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(result => {
-            console.log("Analysis result:", result);
-            descriptionBox.disabled = false;
-            analyzeButton.disabled = false;
-
-            if(result.success){
-                descriptionBox.value = result.description || "";
-                analyzeMessage.textContent = "AI description generated — feel free to edit before submitting.";
-                analyzeMessage.style.color = "green";
-            } else {
-                analyzeMessage.textContent = "Could not auto-generate description, please describe manually.";
-                analyzeMessage.style.color = "red";
-                console.log("Error:", result.error);
-            }
-        })
-
-        .catch(error => {
-            console.log("Fetch error:", error);
-            descriptionBox.disabled = false;
-            analyzeButton.disabled = false;
-            analyzeMessage.textContent = "Error analyzing image."
-            analyzeMessage.style.color = "red";
-        });
-    }
-
-    mapButton.addEventListener("click", function(){
-        const query = locationInput.value.trim();
-        if (query) {
-            mapMessage.textContent = "Opening Google Maps...";
-            const url = `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=18`;
-            window.open(url, "_blank");
-        } else {
-            mapMessage.textContent = "Please enter a location first.";
-        }
-    });
-
-    autoLocateBtn.addEventListener("click", function(){
-        if (!navigator.geolocation) {
-            mapMessage.textContent = "Geolocation is not supported by your browser.";
-            return;
-        }
-
-        mapMessage.style.color = "#444";
-        mapMessage.textContent = "Getting your location...";
-
-        const submitBtn = reportForm.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Please wait...";
-
-        navigator.geolocation.getCurrentPosition(
-            async function(position){
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-
-                latitudeInput.value = lat;
-                longitudeInput.value = lng;
-
-                // Show mini map
-                locationMapDiv.style.display = "block";
-                if (!map) {
-                    map = L.map('locationMap').setView([lat, lng], 16);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; OpenStreetMap contributors'
-                    }).addTo(map);
-                    marker = L.marker([lat, lng]).addTo(map);
-                } else {
-                    map.setView([lat, lng], 16);
-                    marker.setLatLng([lat, lng]);
-                }
-                setTimeout(function() { map.invalidateSize(); }, 100);
-
-                // Reverse geocode to fill the text field
-                mapMessage.textContent = "Looking up address...";
-                try {
-                    const geoRes = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-                        { headers: { 'Accept-Language': 'en' } }
-                    );
-                    if (!geoRes.ok) throw new Error(`Nominatim returned status ${geoRes.status}`);
-                
-                    const geoData = await geoRes.json();
-
-                    if (geoData.display_name) {
-                        locationInput.value = geoData.display_name;
-                        marker.bindPopup(geoData.display_name).openPopup();
-                        mapMessage.style.color = "#27ae60";
-                        mapMessage.textContent = "Location detected";
-                    } else {
-                        mapMessage.textContent = "Got coordinates, but couldn't resolve an address. You can type it manually.";
-                    }
-                } catch (err) {
-                    mapMessage.textContent = "Coordinates captured, but address lookup failed. You can type it manually.";
-                    console.error(err);
-                }
-
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Submit Report";
-            },
-            function(error){
-                mapMessage.style.color = "red";
-                mapMessage.textContent = "Could not get location: " + error.message;
-
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Submit Report";
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    });
-
-    async function lookupLocationFromText(query) {
-        if (!query || query.trim() === "") return;
-    
-        mapMessage.style.color = "#444";
-        mapMessage.textContent = "Looking up location...";
-    
-        try {
-            const geoRes = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=my`,
-                { headers: { 'Accept-Language': 'en' } }
-            );
-            if (!geoRes.ok) throw new Error(`Nominatim returned status ${geoRes.status}`);
-    
-            const results = await geoRes.json();
-            if (!results || results.length === 0) {
-                mapMessage.style.color = "#444";
-                mapMessage.textContent = "Couldn't find that location on the map.";
-                return;
-            }
-    
-            const lat = parseFloat(results[0].lat);
-            const lng = parseFloat(results[0].lon);
-    
-            latitudeInput.value = lat;
-            longitudeInput.value = lng;
-    
-            locationMapDiv.style.display = "block";
-            if (!map) {
-                map = L.map('locationMap').setView([lat, lng], 16);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
-                marker = L.marker([lat, lng]).addTo(map);
-            } else {
-                map.setView([lat, lng], 16);
-                marker.setLatLng([lat, lng]);
-            }
-            setTimeout(function() { map.invalidateSize(); }, 100);
-    
-            mapMessage.style.color = "#27ae60";
-            mapMessage.textContent = "Location matched on map.";
-    
-        } catch (err) {
-            mapMessage.textContent = "Location lookup failed.";
-            console.error(err);
-        }
-    }
-
-    locationInput.addEventListener("blur", function(){
-        lookupLocationFromText(locationInput.value);
-    });
-
-    reportForm.addEventListener("keydown", function(e){
-        if (e.key === "Enter" && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) {
-            e.preventDefault();
-        }
-    });
-
-    reportForm.addEventListener("submit", function(e){
-
-        e.preventDefault();
-
-        const formData = new FormData(reportForm);
-
-        if(inputFile.files[0]){
-            formData.append("image", inputFile.files[0]);
-        }
-
-        fetch("../report/upload.php",{
-            method:"POST",
-            body:formData
-        })
-        .then(response => response.text())
-        .then(data => {
-
-            console.log("Upload response:", data);
-
-            if(data.includes("successfully")){
-                message.style.color = "green";
-                message.textContent = data;
-
-                reportForm.reset();
-                imageView.style.backgroundImage = "none";
-                imageView.style.border = "2px dashed #bbb5ff";
-                imageView.innerHTML =
-                '<img src="../Library/icon.png"><p>Drag and drop or click here<br>to upload image</p><span>Upload any images from device</span>';
-                mapMessage.textContent = "";
-
-                setTimeout(function() {
-                    window.location.href = "../user/userpage.php";
-                }, 1500);
-            } else {
-                message.style.color = "red";
-                message.textContent = data;
-            }
-
-        })
-            });
-        
-    </script>
+</div>
 
 </body>
 </html>
