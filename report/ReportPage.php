@@ -102,37 +102,19 @@ $report = $result->fetch_assoc();
 </style>
     <button onclick="window.location.href='../user/userpage.php'" style="position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 14px; background-color: #5555ff; color: white; border: none; border-radius: 5px; cursor: pointer;">Back to User Page</button>
 </head>
-<body style="text-align:center;">
-	<h1>Smart Urban Issue Detection & Response System</h1>
-    <h2>Submit a new issue</h2>
-    <form
-        id="reportForm"
-        action="upload.php"
-        method="POST"
-        enctype="multipart/form-data"
-    >
 
-    <label for="location" style="display: block; margin: 10px 0 5px 0;">Location</label>
-    <input type="text" id="location" name="location" placeholder="Enter your location here" required><br>
-    <button type="button" id="autoLocateBtn" style="margin: 8px 0px 12px 0; padding: 7px 14px; font-size: 13px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">📍 Use My Current Location</button>
-    <button type="button" id="mapButton" style="margin: 8px 0 12px 0; padding: 7px 14px; font-size: 13px; background-color: #2f80ed; color: white; border: none; border-radius: 5px; cursor: pointer;">Open in Google Maps</button>
-    <p id="mapMessage" style="margin: 0 0 10px 0; color: #444; font-size: 13px;"></p>
+<body>
 
-    <div id="locationMap"></div>
+<div class="container">
 
-    <input type="hidden" id="latitude" name="latitude">
-    <input type="hidden" id="longitude" name="longitude">
+<a href="../admin/caseReview.php" class="back-btn">← Back to Case Review</a>
 
-    <div class="image">
-	    <label for="input-file" id="drop-area">
-    	    <input type="file" name="image" accept="image/*" id="input-file" hidden>
-            <div id="img-view">
-        	    <img src="../Library/icon.png">
-                <p>Drag and drop or click here<br>to upload image</p>
-                <span>Upload any images from device</span>
-            </div>
-        </label>
-    </div>
+<h1>Report Details</h1>
+
+<div class="detail">
+<strong>Case ID</strong>
+<p>#<?php echo htmlspecialchars($report['report_id']); ?></p>
+</div>
 
     <button type="button" id="analyzeButton" style="margin: 15px 0; padding: 8px 20px; font-size: 14px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
         🤖 Analyze Image with AI
