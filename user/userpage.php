@@ -154,7 +154,7 @@ $reports_result = $stmt->get_result();
 
                     <?php if (!empty($report['image'])): ?>
                         <p><strong>Report Image:</strong></p>
-                        <img src="../report/uploads/<?php echo htmlspecialchars($report['image']); ?>">
+                        <img src="../user/uploadpage/<?php echo htmlspecialchars($report['image']); ?>">
                     <?php endif; ?>
 
                     <p>
@@ -187,7 +187,7 @@ $reports_result = $stmt->get_result();
 
         <?php endif; ?>
 
-        <a href="../report/ReportPage.php" class="submit-button">
+        <a href="../user/uploadpage.php" class="submit-button">
             <i class="bx bx-plus"></i>
             Submit New Report
         </a>
