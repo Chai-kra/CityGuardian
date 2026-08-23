@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-*{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -1099,7 +1099,7 @@ a {
 }
 
 #description{
-	width: 500px;
+    width: 500px;
     max-width: 1000px;
     min-height: 50px;
     max-height: 100px;
@@ -1456,5 +1456,293 @@ input.input-box:focus {
 @media (max-width: 800px) {
     .department-grid, .card-container {
         grid-template-columns: 1fr;
+    }
+}
+
+.form-grid-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
+.form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* Card for grouping form elements */
+.form-card {
+    width: 100%;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    padding: 25px 30px;
+    box-sizing: border-box;
+}
+
+.form-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    padding-bottom: 15px;
+    margin-bottom: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Generic form group */
+.form-group {
+    margin-bottom: 15px;
+}
+
+/* Location and Description inputs */
+.form-card .input-box,
+.form-card textarea {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 10px; /* Matched to design */
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #fff;
+    font-size: 15px;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    box-sizing: border-box;
+    outline: none;
+}
+.form-card textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+.form-card .input-box::placeholder,
+.form-card textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-card .input-box:focus,
+.form-card textarea:focus {
+    background: #0f153b;
+    border-color: #fff;
+}
+
+/* Map container */
+#locationMap {
+    height: 250px; /* Reduced height slightly */
+    width: 100%;
+    margin-top: 20px;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: #0f153b; /* Placeholder background */
+}
+.leaflet-container {
+    background: #1a224f; /* Darker background for map tiles */
+}
+
+/* Location buttons container */
+.location-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+/* General button styles for this form */
+.form-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Primary (Blue) Button */
+.form-btn.primary {
+    background: #2563eb;
+    color: #fff;
+}
+.form-btn.primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+/* Secondary (Grey) Button */
+.form-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+.form-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* AI (Green) Button */
+.form-btn.ai {
+    width: 100%;
+    margin-top: 20px;
+    background: #10b981;
+    color: #fff;
+}
+.form-btn.ai:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+/* Disabled state for buttons */
+.form-btn:disabled {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Image Drop Zone */
+.drop-zone {
+    width: 100%;
+    height: 200px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.drop-zone.active,
+.drop-zone:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #fff;
+}
+
+.drop-zone-prompt i {
+    font-size: 40px;
+    color: #fff;
+    margin-bottom: 15px;
+}
+.drop-zone-prompt p {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+}
+.drop-zone-prompt p span {
+    color: #2563eb;
+    font-weight: 600;
+}
+.drop-zone-prompt small {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 10px;
+    display: block;
+}
+
+#previewImage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none; /* Hidden by default */
+}
+
+/* Message styles below inputs */
+.form-message {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    margin-top: 15px;
+    min-height: 20px;
+}
+
+/* Submit Area Buttons */
+.submit-area {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+    .form-grid-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.location-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.loc-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+/* "Use My Location" Button Styling */
+.primary-loc {
+    background: #eef2ff;
+    color: #4f46e5;
+    border-color: #c7d2fe;
+}
+.primary-loc:hover {
+    background: #e0e7ff;
+}
+
+/* "Open in Google Maps" Button Styling */
+.secondary-loc {
+    background: #f9fafb;
+    color: #555;
+    border-color: #dcdcdc;
+}
+.secondary-loc:hover {
+    background: #f3f4f6;
+}
+
+.map-message {
+    font-size: 13px;
+    color: #666;
+    margin-top: 15px;
+}
+
+.map-container {
+    width: 100%;
+    height: 250px;
+    border-radius: 8px;
+    border: 1px solid #dcdcdc;
+    margin-top: 10px;
+    background: #f9fafb;
+    z-index: 1; /* Keeps Leaflet controls from popping out */
+}
+
+/* Mobile responsiveness for buttons */
+@media (max-width: 600px) {
+    .location-actions {
+        flex-direction: column;
     }
 }
