@@ -1,387 +1,767 @@
 <?php
 session_start();
-include "../db.php";
+require_once "../db.php";
 
-if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['id']) || ($_SESSION['role'] ?? '') !== 'admin') {
     header("Location: ../user/LogIn.php");
     exit();
 }
 
-$department = $_SESSION['department'];
+function e($value) {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
 
-$sql = "SELECT * FROM reports WHERE ai_department = ? ORDER BY created_at ASC";
+function statusGroup($status) {
+    if ($status === 'Resolved') {
+        return 'settled';
+    }
+
+    if ($status === 'Assigned' || $status === 'In Progress') {
+        return 'underway';
+    }
+
+    return 'action';
+}
+
+function priorityClass($priority) {
+    $priority = strtolower((string)$priority);
+    $allowed = ['critical', 'high', 'medium', 'low'];
+
+    return in_array($priority, $allowed, true)
+        ? $priority
+        : 'medium';
+}
+
+function validDate($date) {
+    if ($date === '') {
+        return true;
+    }
+
+    $parsed = DateTime::createFromFormat('Y-m-d', $date);
+
+    return $parsed && $parsed->format('Y-m-d') === $date;
+}
+
+$department = trim((string)($_SESSION['department'] ?? ''));
+
+if ($department === '') {
+    exit('Your admin account has no department.');
+}
+
+$search = trim((string)($_GET['search'] ?? ''));
+$priority = (string)($_GET['priority'] ?? 'All');
+$selectedDate = (string)($_GET['date'] ?? '');
+$openSection = (string)($_GET['open'] ?? '');
+
+$allowedPriorities = ['All', 'Critical', 'High', 'Medium', 'Low'];
+$allowedSections = ['', 'all', 'action', 'underway', 'settled'];
+
+if (!in_array($priority, $allowedPriorities, true)) {
+    $priority = 'All';
+}
+
+if (!validDate($selectedDate)) {
+    $selectedDate = '';
+}
+
+if (!in_array($openSection, $allowedSections, true)) {
+    $openSection = '';
+}
+
+$sql = "SELECT * FROM reports
+        WHERE ai_department = ?
+        ORDER BY created_at DESC";
+
 $stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+    error_log('Case Review error: ' . $conn->error);
+    exit('Unable to load reports.');
+}
+
 $stmt->bind_param("s", $department);
 $stmt->execute();
 $result = $stmt->get_result();
 
-$reports = [];
+$allReports = [];
 
 while ($row = $result->fetch_assoc()) {
-    $reports[] = $row;
+    $allReports[] = $row;
 }
 
-$totalCases = count($reports);
-$actionNeededCases = 0;
-$underwayCases = 0;
-$settledCases = 0;
+$stmt->close();
 
-foreach ($reports as $report) {
-    if ($report['status'] === 'Pending') {
-        $actionNeededCases++;
-    }
+$summary = [
+    'total' => count($allReports),
+    'action' => 0,
+    'underway' => 0,
+    'settled' => 0
+];
 
-    if ($report['status'] === 'Assigned' || $report['status'] === 'In Progress') {
-        $underwayCases++;
-    }
-
-    if ($report['status'] === 'Resolved') {
-        $settledCases++;
-    }
+foreach ($allReports as $report) {
+    $group = statusGroup($report['status'] ?? 'Pending');
+    $summary[$group]++;
 }
+
+$filteredReports = array_values(array_filter(
+    $allReports,
+    function ($report) use ($search, $priority, $selectedDate) {
+        if (
+            $priority !== 'All' &&
+            strcasecmp(
+                (string)($report['ai_priority'] ?? ''),
+                $priority
+            ) !== 0
+        ) {
+            return false;
+        }
+
+        if ($selectedDate !== '') {
+            $timestamp = strtotime(
+                (string)($report['created_at'] ?? '')
+            );
+
+            $reportDate = $timestamp
+                ? date('Y-m-d', $timestamp)
+                : '';
+
+            if ($reportDate !== $selectedDate) {
+                return false;
+            }
+        }
+
+        if ($search !== '') {
+            $searchText = implode(' ', [
+                $report['report_id'] ?? '',
+                $report['issue_type'] ?? '',
+                $report['location'] ?? '',
+                $report['description'] ?? '',
+                $report['ai_description'] ?? ''
+            ]);
+
+            if (stripos($searchText, $search) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+));
+
+$groupedReports = [
+    'action' => [],
+    'underway' => [],
+    'settled' => []
+];
+
+foreach ($filteredReports as $report) {
+    $group = statusGroup($report['status'] ?? 'Pending');
+    $groupedReports[$group][] = $report;
+}
+
+$hasFilters =
+    $search !== '' ||
+    $priority !== 'All' ||
+    $selectedDate !== '';
+
+$sections = [
+    'action' => [
+        'title' => 'Action Needed',
+        'empty' => 'No pending reports match the filters.'
+    ],
+    'underway' => [
+        'title' => 'Underway',
+        'empty' => 'No underway reports match the filters.'
+    ],
+    'settled' => [
+        'title' => 'Settled',
+        'empty' => 'No settled reports match the filters.'
+    ]
+];
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Case Review</title>
-<link rel="stylesheet" href="/css/style.css">
-<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=search">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Case Review - AI City Guardian</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+          rel="stylesheet">
+
+    <style>
+        header.main-header {
+            display: flex;
+        }
+
+        .nav-logo {
+            color: #fff;
+        }
+
+        .admin-toggle {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .admin-menu-item.menu-open .logout-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dashboard-filters {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-submit {
+            border: 0;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 21px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            margin-left: 8px;
+        }
+
+        .filter-select,
+        .filter-date {
+            height: 54px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 40px;
+            color: #fff;
+            background: transparent;
+            padding: 0 18px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-select option {
+            color: #fff;
+            background: #111844;
+        }
+
+        .filter-date {
+            color-scheme: dark;
+        }
+
+        .clear-filter {
+            color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px;
+            padding: 9px 15px;
+        }
+
+        .summary-card-button {
+            color: #fff;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .filter-result {
+            margin: 22px 0 0;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 14px;
+        }
+
+        .badge.high {
+            background: rgba(255, 128, 64, 0.2);
+            color: #ff9b69;
+            border: 1px solid #ff9b69;
+        }
+
+        .badge.low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid #34d399;
+        }
+
+        .report-card .view-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .main-footer {
+            justify-content: center;
+        }
+
+        @media (max-width: 1100px) {
+            .main-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 760px) {
+            body {
+                display: block;
+            }
+
+            .sidebar {
+                width: 100%;
+                min-height: auto;
+            }
+
+            .main-content {
+                padding: 24px 16px;
+            }
+
+            .dashboard-filters,
+            .search {
+                width: 100%;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .report-card {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .report-meta {
+                align-items: flex-start;
+                margin: 0;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <!-- =======================
-         SIDEBAR (LEFT COLUMN)
-    ======================== -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <a href="#" class="nav-logo">
-                <h2 class="logo-text">AI City Guardian</h2>
-            </a>
-        </div>
-        <ul class="sidebar-menu">
-            <li class="sidebar-item active">
-                <a href="caseReview.php" class="sidebar-link">
-                    <i class='bx bxs-dashboard'></i>
-                    <span>Case Review</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a href="adminStatistics.php" class="sidebar-link">
-                    <i class='bx bx-bar-chart-alt-2'></i>
-                    <span>Statistics</span>
-                </a>
-            </li>
-        </ul>
-        <div class="sidebar-footer">
-            <ul class="sidebar-menu">
-                <li class="sidebar-item admin-menu-item">
-                     <a href="#" class="sidebar-link">
-                        <i class='bx bxs-user-circle'></i>
-                        <span>Admin</span>
-                    </a>
-                    <div class="logout-dropdown">
-                        <a href="../user/logout.php" class="logout-btn">
-                            <i class='bx bx-log-out'></i>
-                            Logout
-                        </a>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </aside>
 
-<!-- =======================
-         MAIN CONTENT (RIGHT COLUMN)
-    ======================== -->
-    <div class="main-content">
-        <header class="main-header">
-            <div class="header-title">
-                <h1>Dashboard Overview</h1>
-                <p>Manage civic issues and track city maintenance</p>
-            </div>
-            <div class="header-actions">
-                 <div class="search">
-                    <span class="search-icon material-symbols-outlined">search</span>
-                    <input class="search-input" type="search" name="search" placeholder="Search issues, locations..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-                </div>
-                 <div class="dropdown">
-                    <div class="select">
-                        <span class="selected">Priority</span>
-                        <div class="caret"></div>
-                    </div>
-                    <ul class="menu">
-                        <li class="active">Priority</li>
-                        <li>Low</li>
-                        <li>Medium</li>
-                        <li>High</li>
-                        <li>Critical</li>
-                    </ul>
-                </div>
-                <div class="date-picker-container">
-                    <div class="select date-select">
-                        <span class="selected" id="date-label">Choose Date</span>
-                        <div class="caret"></div>
-                        <input type="date" id="case-date-picker" class="native-date-input" onchange="updateDateLabel(this)">
-                    </div>
-                </div>
-            </div>
-        </header>
+<aside class="sidebar">
 
-        <main>
-            <!-- Summary Cards -->
-            <div class="card-container">
-                <!-- Your 4 PHP summary cards go here -->
-                 <div class="card">
-                    <div class="card-content">
-                        <h3>Total</h3>
-                        <p><?php echo $totalCases; ?> cases</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-content">
-                        <h3>Action Needed</h3>
-                        <p><?php echo $actionNeededCases; ?> cases</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-content">
-                        <h3>Underway</h3>
-                        <p><?php echo $underwayCases; ?> cases</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-content">
-                        <h3>Settled</h3>
-                        <p><?php echo $settledCases; ?> cases</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Case Review Box -->
-            <div class="caseReviewBox">
-                <p style="text-align: center; margin-bottom: 30px; font-size: 16px; color: rgba(255, 255, 255, 0.7);">
-                    Department:
-                    <strong style="color: #fff; font-weight: 600;"><?php echo htmlspecialchars($department); ?></strong>
-                </p>
-                <div class="sub-category">
-                    
-                    <!-- 1. Action Needed -->
-                    <button class="collapsible">
-                        <span>Action needed</span>
-                        <span class="case-count"><?php echo $actionNeededCases; ?></span>
-                    </button>
-                    <div class="content">
-                        <div class="inner-content report-list">
-                            <?php
-                            $hasPending = false;
-                            foreach ($reports as $report):
-                                if ($report['status'] !== 'Pending') {
-                                    continue;
-                                }
-                                $hasPending = true;
-                            ?>
-                            <div class="report-card">
-                                <div class="report-info">
-                                    <h4>Case #<?php echo htmlspecialchars($report['report_id']); ?>: <?php echo htmlspecialchars($report['issue_type']); ?></h4>
-                                    <p>Location: <?php echo htmlspecialchars($report['location']); ?></p>
-                                </div>
-                                <div class="report-meta">
-                                    <span class="badge <?php echo strtolower($report['ai_priority']); ?>"><?php echo htmlspecialchars($report['ai_priority']); ?></span>
-                                    <span class="date"><?php echo date("M d, Y", strtotime($report['created_at'])); ?></span>
-                                </div>
-                                <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">Review</button>
-                            </div>
-                            <?php endforeach; ?>
-
-                            <?php if (!$hasPending): ?>
-                            <p class="no-reports">No pending reports.</p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- 2. Underway -->
-                    <button class="collapsible">
-                        <span>Underway</span>
-                        <span class="case-count"><?php echo $underwayCases; ?></span>
-                    </button>
-                    <div class="content">
-                        <div class="inner-content report-list">
-                            <?php
-                            $hasUnderway = false;
-                            foreach ($reports as $report):
-                                if ($report['status'] !== 'Assigned' && $report['status'] !== 'In Progress') {
-                                    continue;
-                                }
-                                $hasUnderway = true;
-                            ?>
-                            <div class="report-card">
-                                <div class="report-info">
-                                    <h4>Case #<?php echo htmlspecialchars($report['report_id']); ?>: <?php echo htmlspecialchars($report['issue_type']); ?></h4>
-                                    <p>Location: <?php echo htmlspecialchars($report['location']); ?></p>
-                                </div>
-                                <div class="report-meta">
-                                    <span class="badge <?php echo strtolower($report['ai_priority']); ?>"><?php echo htmlspecialchars($report['ai_priority']); ?></span>
-                                    <span class="date"><?php echo date("M d, Y", strtotime($report['created_at'])); ?></span>
-                                </div>
-                                <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">Review</button>
-                            </div>
-                            <?php endforeach; ?>
-
-                            <?php if (!$hasUnderway): ?>
-                            <p class="no-reports">No reports currently underway.</p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- 3. Settled -->
-                    <button class="collapsible">
-                        <span>Settled</span>
-                        <span class="case-count"><?php echo $settledCases; ?></span>
-                    </button>
-                    <div class="content">
-                        <div class="inner-content report-list">
-                            <?php
-                            $hasSettled = false;
-                            foreach ($reports as $report):
-                                if ($report['status'] !== 'Resolved') {
-                                    continue;
-                                }
-                                $hasSettled = true;
-                            ?>
-                            <div class="report-card">
-                                <div class="report-info">
-                                    <h4>Case #<?php echo htmlspecialchars($report['report_id']); ?>: <?php echo htmlspecialchars($report['issue_type']); ?></h4>
-                                    <p>Location: <?php echo htmlspecialchars($report['location']); ?></p>
-                                </div>
-                                <div class="report-meta">
-                                    <span class="badge <?php echo strtolower($report['ai_priority']); ?>"><?php echo htmlspecialchars($report['ai_priority']); ?></span>
-                                    <span class="date"><?php echo date("M d, Y", strtotime($report['created_at'])); ?></span>
-                                </div>
-                                <button class="view-btn" type="button" onclick="viewReport(<?php echo $report['report_id']; ?>)">Review</button>
-                            </div>
-                            <?php endforeach; ?>
-
-                            <?php if (!$hasSettled): ?>
-                            <p class="no-reports">No resolved reports.</p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </main>
-        <footer class="main-footer">
-            <p>&copy; <?php echo date("Y"); ?> AI City Guardian. All rights reserved.</p>
-            <div class="footer-links">
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
-                <a href="#">Help & Support</a>
-            </div>
-        </footer>
+    <div class="sidebar-header">
+        <a href="caseReview.php" class="nav-logo">
+            <h2 class="logo-text">AI City Guardian</h2>
+        </a>
     </div>
 
+    <ul class="sidebar-menu">
+
+        <li class="sidebar-item active">
+            <a href="caseReview.php" class="sidebar-link">
+                <i class="bx bxs-dashboard"></i>
+                <span>Case Review</span>
+            </a>
+        </li>
+
+        <li class="sidebar-item">
+            <a href="adminStatistics.php" class="sidebar-link">
+                <i class="bx bx-bar-chart-alt-2"></i>
+                <span>Statistics</span>
+            </a>
+        </li>
+
+    </ul>
+
+    <div class="sidebar-footer">
+
+        <ul class="sidebar-menu">
+
+            <li class="sidebar-item admin-menu-item"
+                id="admin-menu-item">
+
+                <button type="button"
+                        class="sidebar-link admin-toggle"
+                        id="admin-toggle"
+                        aria-expanded="false">
+
+                    <i class="bx bxs-user-circle"></i>
+                    <span>Admin</span>
+
+                </button>
+
+                <div class="logout-dropdown">
+                    <a href="../user/logout.php"
+                       class="logout-btn">
+
+                        <i class="bx bx-log-out"></i>
+                        Logout
+
+                    </a>
+                </div>
+
+            </li>
+
+        </ul>
+
+    </div>
+
+</aside>
+
+<div class="main-content">
+
+    <header class="main-header">
+
+        <div class="header-title">
+            <h1>Dashboard Overview</h1>
+            <p>Manage civic issues and track city maintenance</p>
+        </div>
+
+        <form class="header-actions dashboard-filters"
+              method="get"
+              action="caseReview.php">
+
+            <div class="search">
+
+                <button class="search-submit"
+                        type="submit"
+                        aria-label="Search">
+
+                    <i class="bx bx-search"></i>
+
+                </button>
+
+                <input class="search-input"
+                       type="search"
+                       name="search"
+                       placeholder="Search issues, locations..."
+                       value="<?php echo e($search); ?>">
+
+            </div>
+
+            <select class="filter-select"
+                    name="priority"
+                    aria-label="Priority"
+                    onchange="this.form.submit()">
+
+                <?php foreach ($allowedPriorities as $option): ?>
+
+                    <option value="<?php echo e($option); ?>"
+                        <?php echo $priority === $option ? 'selected' : ''; ?>>
+
+                        <?php
+                        echo $option === 'All'
+                            ? 'All priorities'
+                            : e($option);
+                        ?>
+
+                    </option>
+
+                <?php endforeach; ?>
+
+            </select>
+
+            <input class="filter-date"
+                   type="date"
+                   name="date"
+                   aria-label="Report date"
+                   value="<?php echo e($selectedDate); ?>"
+                   onchange="this.form.submit()">
+
+            <?php if ($hasFilters): ?>
+
+                <a class="clear-filter" href="caseReview.php">
+                    Clear
+                </a>
+
+            <?php endif; ?>
+
+        </form>
+
+    </header>
+
+    <main>
+
+        <div class="card-container">
+
+            <button class="card summary-card-button"
+                    type="button"
+                    data-summary-section="all">
+
+                <div class="card-content">
+                    <h3>Total</h3>
+                    <p><?php echo $summary['total']; ?> cases</p>
+                </div>
+
+            </button>
+
+            <button class="card summary-card-button"
+                    type="button"
+                    data-summary-section="action">
+
+                <div class="card-content">
+                    <h3>Action Needed</h3>
+                    <p><?php echo $summary['action']; ?> cases</p>
+                </div>
+
+            </button>
+
+            <button class="card summary-card-button"
+                    type="button"
+                    data-summary-section="underway">
+
+                <div class="card-content">
+                    <h3>Underway</h3>
+                    <p><?php echo $summary['underway']; ?> cases</p>
+                </div>
+
+            </button>
+
+            <button class="card summary-card-button"
+                    type="button"
+                    data-summary-section="settled">
+
+                <div class="card-content">
+                    <h3>Settled</h3>
+                    <p><?php echo $summary['settled']; ?> cases</p>
+                </div>
+
+            </button>
+
+        </div>
+
+        <?php if ($hasFilters): ?>
+
+            <p class="filter-result">
+                Showing <?php echo count($filteredReports); ?>
+                of <?php echo count($allReports); ?> cases.
+            </p>
+
+        <?php endif; ?>
+
+        <div class="caseReviewBox">
+
+            <p style="text-align:center; margin-bottom:30px; color:rgba(255,255,255,.7);">
+
+                Department:
+
+                <strong style="color:#fff;">
+                    <?php echo e($department); ?>
+                </strong>
+
+            </p>
+
+            <div class="sub-category">
+
+                <?php foreach ($sections as $sectionKey => $section): ?>
+
+                    <section id="section-<?php echo e($sectionKey); ?>">
+
+                        <button class="collapsible"
+                                type="button"
+                                data-section="<?php echo e($sectionKey); ?>"
+                                aria-expanded="false">
+
+                            <span><?php echo e($section['title']); ?></span>
+
+                            <span class="case-count">
+                                <?php echo count($groupedReports[$sectionKey]); ?>
+                            </span>
+
+                        </button>
+
+                        <div class="content">
+
+                            <div class="inner-content report-list">
+
+                                <?php if ($groupedReports[$sectionKey] === []): ?>
+
+                                    <p class="no-reports">
+                                        <?php echo e($section['empty']); ?>
+                                    </p>
+
+                                <?php else: ?>
+
+                                    <?php foreach ($groupedReports[$sectionKey] as $report): ?>
+
+                                        <?php
+                                        $timestamp = strtotime(
+                                            (string)($report['created_at'] ?? '')
+                                        );
+
+                                        $displayDate = $timestamp
+                                            ? date('M d, Y', $timestamp)
+                                            : 'No date';
+
+                                        $displayPriority =
+                                            $report['ai_priority']
+                                            ?: 'Medium';
+                                        ?>
+
+                                        <div class="report-card">
+
+                                            <div class="report-info">
+
+                                                <h4>
+                                                    Case #<?php echo e($report['report_id']); ?>:
+                                                    <?php echo e($report['issue_type'] ?: 'General issue'); ?>
+                                                </h4>
+
+                                                <p>
+                                                    Location:
+                                                    <?php echo e($report['location'] ?: 'Not provided'); ?>
+                                                </p>
+
+                                            </div>
+
+                                            <div class="report-meta">
+
+                                                <span class="badge <?php echo e(priorityClass($displayPriority)); ?>">
+                                                    <?php echo e($displayPriority); ?>
+                                                </span>
+
+                                                <span class="date">
+                                                    <?php echo e($displayDate); ?>
+                                                </span>
+
+                                            </div>
+
+                                            <a class="view-btn"
+                                               href="../report/ReportPage.php?id=<?php echo (int)$report['report_id']; ?>">
+
+                                                Review
+
+                                            </a>
+
+                                        </div>
+
+                                    <?php endforeach; ?>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                <?php endforeach; ?>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer class="main-footer">
+        <p>
+            &copy; <?php echo date('Y'); ?>
+            AI City Guardian. All rights reserved.
+        </p>
+    </footer>
+
+</div>
+
 <script>
-var coll = document.getElementsByClassName("collapsible");
-var i;
+const collapsibleButtons = document.querySelectorAll('.collapsible');
 
-for (i = 0; i < coll.length; i++) {
-    coll[i].addEventListener("click", function() {
-        this.classList.toggle("active");
-        var content = this.nextElementSibling;
+function setSection(button, shouldOpen) {
+    const content = button.nextElementSibling;
 
-        if (content.style.maxHeight) {
-            content.style.overflow = "hidden";
-            content.style.maxHeight = null;
-        } else {
-            content.style.maxHeight = content.scrollHeight + "px";
+    button.classList.toggle('active', shouldOpen);
+    button.setAttribute(
+        'aria-expanded',
+        shouldOpen ? 'true' : 'false'
+    );
 
-            setTimeout(() => {
-                if (content.style.maxHeight) {
-                    content.style.overflow = "visible";
-                }
-            }, 200);
-        }
-    });
-}
+    if (shouldOpen) {
+        content.style.maxHeight = content.scrollHeight + 'px';
 
-const dropdowns = document.querySelectorAll(".dropdown");
-
-dropdowns.forEach(dropdown => {
-    const select = dropdown.querySelector(".select");
-    const caret = dropdown.querySelector(".caret");
-    const menu = dropdown.querySelector(".menu");
-    const options = dropdown.querySelectorAll(".menu li");
-    const selected = dropdown.querySelector(".selected");
-
-    select.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleMenu();
-    });
-
-    options.forEach(option => {
-        option.addEventListener("click", () => {
-            selected.innerText = option.innerText;
-
-            options.forEach(opt => opt.classList.remove("active"));
-
-            option.classList.add("active");
-            closeMenu();
-        });
-    });
-
-    const toggleMenu = () => {
-        const isOpen = menu.classList.contains("menu-open");
-
-        if (isOpen) {
-            closeMenu();
-        } else {
-            openMenu();
-        }
-    };
-
-    const openMenu = () => {
-        select.classList.add("select-clicked");
-        caret.classList.add("caret-rotate");
-        menu.classList.add("menu-open");
-
-        document.addEventListener("click", handleClickOutside);
-    };
-
-    const closeMenu = () => {
-        select.classList.remove("select-clicked");
-        caret.classList.remove("caret-rotate");
-        menu.classList.remove("menu-open");
-
-        document.removeEventListener("click", handleClickOutside);
-    };
-
-    const handleClickOutside = (e) => {
-        if (!dropdown.contains(e.target)) {
-            closeMenu();
-        }
-    };
-});
-
-function updateDateLabel(input) {
-    const label = document.getElementById("date-label");
-
-    if (input.value) {
-        const [year, month, day] = input.value.split('-');
-        const formattedDate = `${day}/${month}/${year}`;
-        label.innerText = formattedDate;
+        setTimeout(() => {
+            if (button.getAttribute('aria-expanded') === 'true') {
+                content.style.overflow = 'visible';
+            }
+        }, 220);
     } else {
-        label.innerText = "Choose Date";
+        content.style.overflow = 'hidden';
+        content.style.maxHeight = null;
     }
 }
 
-function viewReport(reportId) {
-    window.location.href = "../report/ReportPage.php?id=" + reportId;
+collapsibleButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const shouldOpen =
+            button.getAttribute('aria-expanded') !== 'true';
+
+        setSection(button, shouldOpen);
+    });
+});
+
+function openSummarySection(section) {
+    collapsibleButtons.forEach(button => {
+        const shouldOpen =
+            section === 'all' ||
+            button.dataset.section === section;
+
+        setSection(button, shouldOpen);
+    });
+
+    if (section !== 'all') {
+        document
+            .getElementById('section-' + section)
+            ?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+    }
 }
+
+document
+    .querySelectorAll('[data-summary-section]')
+    .forEach(card => {
+        card.addEventListener('click', () => {
+            openSummarySection(card.dataset.summarySection);
+        });
+    });
+
+const requestedSection =
+    <?php echo json_encode($openSection); ?>;
+
+if (requestedSection) {
+    window.addEventListener('load', () => {
+        openSummarySection(requestedSection);
+    });
+}
+
+const adminItem =
+    document.getElementById('admin-menu-item');
+
+const adminToggle =
+    document.getElementById('admin-toggle');
+
+adminToggle.addEventListener('click', event => {
+    event.stopPropagation();
+
+    const isOpen =
+        adminItem.classList.toggle('menu-open');
+
+    adminToggle.setAttribute(
+        'aria-expanded',
+        isOpen ? 'true' : 'false'
+    );
+});
+
+document.addEventListener('click', event => {
+    if (!adminItem.contains(event.target)) {
+        adminItem.classList.remove('menu-open');
+        adminToggle.setAttribute('aria-expanded', 'false');
+    }
+});
 </script>
+
 </body>
 </html>
