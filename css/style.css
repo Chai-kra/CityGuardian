@@ -78,14 +78,23 @@ body {
 }
 
 .logout-dropdown {
-    /* Reposition for sidebar */
     position: absolute;
-    bottom: 100%; /* Appears above the button */
+    bottom: 100%; /* Positions the dropdown ABOVE the Admin link */
+    top: auto; /* Overrides the old top setting */
+    
     left: 50%;
-    transform: translateX(-50%) translateY(-10px);
-    margin-bottom: 15px; /* Space from the button */
+    /* Starts slightly lower (closer to the button) for the animation */
+    transform: translateX(-50%) translateY(10px); 
+    
+    padding-bottom: 15px; /* Invisible bridge so the menu doesn't close as the mouse moves up */
+    padding-top: 0; /* Resets the old padding */
+    
+    /* Hiding mechanism */
+    opacity: 0;
+    visibility: hidden; 
+    transition: all 0.3s ease;
+    z-index: 100;
 }
-
 
 /* ========== MAIN CONTENT HEADER ========== */
 .main-header {
@@ -574,24 +583,11 @@ a {
     position: relative; 
 }
 
-.logout-dropdown {
-    position: absolute;
-    top: 100%; /* Places it directly below the Admin link */
-    left: 50%;
-    transform: translateX(-50%) translateY(10px); 
-    padding-top: 15px;
-
-    /* Hiding mechanism */
-    opacity: 0;
-    visibility: hidden; 
-    transition: all 0.3s ease;
-    z-index: 100;
-}
-
 .admin-menu-item:hover .logout-dropdown {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(0);
+    /* Slides smoothly upward into its final place */
+    transform: translateX(-50%) translateY(0); 
 }
 
 .admin-menu-item:hover .nav-link {
@@ -1038,70 +1034,6 @@ a {
     color: #111844; /* Inverts color on hover */
 }
 
-.charts {
-    display:flex;
-    place-content: center;
-    flex-flow: wrap;
-    gap: 2rem;
-}
-
-.pie {
-    flex: 1 0 225px;
-    max-width: 325px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: none;
-    background-image: 
-        radial-gradient(
-            white 40%,
-            transparent 0 70%,
-            white 0
-        ),
-        conic-gradient(
-            green 0% 40%,
-            yellow 40% 60%,
-            red 60% 100%
-        );
-}
-
-.legends {
-    margin-block-end: 2rem;
-    font-size: 0.9rem;
-    flex-basis: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-flow: wrap;
-    gap: 1rem;
-}
-
-.legends span {
-    position: relative;
-    padding-inline-start: 1.25rem;
-}
-
-.legends span::before {
-    position: absolute;
-    top: 0.4rem;
-    left: 0;
-    content: '';
-    width: 0.8rem;
-    aspect-ratio: 1;
-    border-radius: 50%;
-}
-
-.legends span:nth-child(1)::before {
-    background-color:red;
-}
-
-.legends span:nth-child(2)::before {
-    background-color:yellow;
-}
-
-.legends span:nth-child(3)::before {
-    background-color:green;
-}
-
 .image {
     width: 100%;
     display: flex;
@@ -1336,4 +1268,193 @@ input.input-box:focus {
 .submit-btn:hover {
     transform: translateY(-3px) scale(1.02); /* Satisfying "pop" when hovered */
     box-shadow: 0 10px 25px rgba(255, 255, 255, 0.4);
+}
+
+.main-footer {
+    margin-top: 60px; /* Pushes it down from the Case Review box */
+    padding-top: 25px;
+    padding-bottom: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1); /* Subtle separating line */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.5); /* Dimmed text to not distract from main content */
+    font-size: 13px;
+}
+
+.main-footer p {
+    margin: 0;
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+/* Brightens up when hovered */
+.footer-links a:hover {
+    color: #fff;
+}
+
+/* Responsive adjustment for smaller screens */
+@media (max-width: 768px) {
+    .main-footer {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+}
+
+.refresh-btn {
+    background: transparent;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%; /* Circle shape */
+    width: 54px;
+    height: 54px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    transform: rotate(90deg); /* Nice spin effect on hover */
+}
+
+/* Department Grid (3 Columns) */
+.department-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    width: 100%;
+    margin-top: 30px;
+}
+
+/* Individual Department Card */
+.dept-card {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.dept-card:hover {
+    border-color: #fff;
+    transform: translateY(-5px);
+}
+
+.dept-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+/* Flex Container for Chart + Legend */
+.dept-card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+/* The CSS Donut Chart */
+.donut-chart {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    /* Gradient is applied inline via PHP based on data */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0; /* Prevents chart from shrinking */
+}
+
+/* The inner hole of the Donut */
+.donut-inner {
+    width: 65px;
+    height: 65px;
+    background: #111844; /* Matches body background to look transparent */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.donut-number {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* Legend Styling */
+.dept-legend {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1; /* Takes up remaining space */
+}
+
+.legend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
+.legend-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-value {
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Status Colors */
+.legend-dot.settled { background: #10b981; } /* Emerald Green */
+.legend-dot.underway { background: #fbbf24; } /* Amber/Yellow */
+.legend-dot.action-needed { background: #ef4444; } /* Red */
+
+/* Responsive adjustment for tablets/laptops */
+@media (max-width: 1200px) {
+    .department-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Responsive adjustment for small screens */
+@media (max-width: 800px) {
+    .department-grid, .card-container {
+        grid-template-columns: 1fr;
+    }
 }
