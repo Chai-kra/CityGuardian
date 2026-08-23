@@ -164,6 +164,10 @@ foreach ($reports as $report) {
 
             <!-- Case Review Box -->
             <div class="caseReviewBox">
+                <p style="text-align: center; margin-bottom: 30px; font-size: 16px; color: rgba(255, 255, 255, 0.7);">
+                    Department:
+                    <strong style="color: #fff; font-weight: 600;"><?php echo htmlspecialchars($department); ?></strong>
+                </p>
                 <div class="sub-category">
                     
                     <!-- 1. Action Needed -->
@@ -271,6 +275,14 @@ foreach ($reports as $report) {
                 </div>
             </div>
         </main>
+        <footer class="main-footer">
+            <p>&copy; <?php echo date("Y"); ?> AI City Guardian. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Help & Support</a>
+            </div>
+        </footer>
     </div>
 
 <script>

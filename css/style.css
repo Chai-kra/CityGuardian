@@ -78,14 +78,23 @@ body {
 }
 
 .logout-dropdown {
-    /* Reposition for sidebar */
     position: absolute;
-    bottom: 100%; /* Appears above the button */
+    bottom: 100%; /* Positions the dropdown ABOVE the Admin link */
+    top: auto; /* Overrides the old top setting */
+    
     left: 50%;
-    transform: translateX(-50%) translateY(-10px);
-    margin-bottom: 15px; /* Space from the button */
+    /* Starts slightly lower (closer to the button) for the animation */
+    transform: translateX(-50%) translateY(10px); 
+    
+    padding-bottom: 15px; /* Invisible bridge so the menu doesn't close as the mouse moves up */
+    padding-top: 0; /* Resets the old padding */
+    
+    /* Hiding mechanism */
+    opacity: 0;
+    visibility: hidden; 
+    transition: all 0.3s ease;
+    z-index: 100;
 }
-
 
 /* ========== MAIN CONTENT HEADER ========== */
 .main-header {
@@ -574,24 +583,11 @@ a {
     position: relative; 
 }
 
-.logout-dropdown {
-    position: absolute;
-    top: 100%; /* Places it directly below the Admin link */
-    left: 50%;
-    transform: translateX(-50%) translateY(10px); 
-    padding-top: 15px;
-
-    /* Hiding mechanism */
-    opacity: 0;
-    visibility: hidden; 
-    transition: all 0.3s ease;
-    z-index: 100;
-}
-
 .admin-menu-item:hover .logout-dropdown {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(0);
+    /* Slides smoothly upward into its final place */
+    transform: translateX(-50%) translateY(0); 
 }
 
 .admin-menu-item:hover .nav-link {
@@ -1336,4 +1332,45 @@ input.input-box:focus {
 .submit-btn:hover {
     transform: translateY(-3px) scale(1.02); /* Satisfying "pop" when hovered */
     box-shadow: 0 10px 25px rgba(255, 255, 255, 0.4);
+}
+
+.main-footer {
+    margin-top: 60px; /* Pushes it down from the Case Review box */
+    padding-top: 25px;
+    padding-bottom: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1); /* Subtle separating line */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.5); /* Dimmed text to not distract from main content */
+    font-size: 13px;
+}
+
+.main-footer p {
+    margin: 0;
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+/* Brightens up when hovered */
+.footer-links a:hover {
+    color: #fff;
+}
+
+/* Responsive adjustment for smaller screens */
+@media (max-width: 768px) {
+    .main-footer {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
 }
