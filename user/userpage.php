@@ -171,7 +171,7 @@ $filteredReports = array_values(array_filter(
             $report['report_id'] ?? '',
             $report['issue_type'] ?? '',
             $report['location'] ?? '',
-            $report['description'] ?? '',
+            $report['ai_description'] ?? '',
             $report['extra_details'] ?? '',
             $report['ai_department'] ?? '',
             $report['latest_feedback'] ?? ''
@@ -676,7 +676,7 @@ $filtersActive = $search !== '' || $statusFilter !== '' || $priorityFilter !== '
                                     <span><?php echo e($report['location'] ?: 'Location not available'); ?></span>
                                 </p>
 
-                                <p class="card-description"><?php echo e($report['description'] ?: 'No description was provided.'); ?></p>
+                                <p class="card-description"><?php echo e($report['ai_description'] ?: 'No description was provided.'); ?></p>
 
                                 <div class="extra-details<?php echo $extraDetails === '' ? ' empty' : ''; ?>">
                                     <strong>Nearby facilities / extra details</strong>
