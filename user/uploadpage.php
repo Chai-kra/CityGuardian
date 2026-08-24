@@ -18,6 +18,43 @@ if (!isset($_SESSION['id']) || ($_SESSION['role'] ?? '') === 'admin') {
     <link rel="stylesheet" href="/css/style.css"> 
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        /* ---- Two-column layout for the report form ---- */
+        .report-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas:
+                "location image"
+                "description description";
+            gap: 40px;
+            align-items: start;
+        }
+
+        .grid-location { grid-area: location; }
+        .grid-image    { grid-area: image; }
+        .grid-description { grid-area: description; }
+
+        /* Make sure the map never exceeds its column width */
+        #locationMap {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Mobile: stack Location -> Image -> Description */
+        @media (max-width: 768px) {
+            .report-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "location"
+                    "image"
+                    "description";
+                gap: 0;
+            }
+        }
+    </style>
+    
 </head>
 
 <body>
@@ -78,50 +115,58 @@ if (!isset($_SESSION['id']) || ($_SESSION['role'] ?? '') === 'admin') {
         <div class="caseReviewBox" style="margin-top: 0; padding: 40px; background: #1a224f;">
             
             <form id="reportForm" action="../report/upload.php" method="POST" enctype="multipart/form-data">
-                
-                <!-- 1. IMAGE UPLOAD -->
-                <h2 style="text-align: center; margin-bottom: 20px;">Upload Image</h2>
-                <label for="input-file" id="drop-area">
-                    <input type="file" name="image" accept="image/*" id="input-file" hidden>
-                    <!-- Added position: relative here to contain the image -->
-                    <div id="img-view" style="position: relative;"> 
-                        <div id="uploadContent" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%;">
-                            <i class='bx bx-cloud-upload' style="font-size: 50px; margin-bottom: 10px; color: #fff;"></i>
-                            <p>Drag & drop or click to upload</p>
-                            <span>Supports JPG, PNG</span>
+
+                <div class="report-grid">
+
+                    <!-- LOCATION (left on desktop, first on mobile) -->
+                    <div class="grid-location">
+                        <h2 style="text-align: center; margin-bottom: 10px;">Location</h2>
+                        <input type="text" id="location" name="location" class="input-box" placeholder="Enter issue location" required>
+
+                        <div class="location-buttons">
+                            <button type="button" id="autoLocateBtn" class="action-btn">
+                                <i class='bx bx-current-location'></i> Use My Location
+                            </button>
+                            <button type="button" id="mapButton" class="action-btn">
+                                <i class='bx bx-map-alt'></i> Google Maps
+                            </button>
                         </div>
-                        <!-- Absolute positioning safely locks the image inside the box -->
-                        <img id="previewImage" alt="Preview" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 18px;">
+
+                        <p id="mapMessage" class="message-text" style="color: rgba(255,255,255,0.7);"></p>
+                        <div id="locationMap"></div>
+
+                        <input type="hidden" id="latitude" name="latitude">
+                        <input type="hidden" id="longitude" name="longitude">
                     </div>
-                </label>
-                
-                <button type="button" id="analyzeButton" class="action-btn ai-btn">
-                    <i class='bx bxs-magic-wand'></i> Analyze Image with AI
-                </button>
-                <p id="analyzeMessage" class="message-text" style="color: #10b981;"></p>
 
-                <!-- 2. LOCATION -->
-                <h2 style="text-align: center; margin-top: 40px; margin-bottom: 10px;">Location</h2>
-                <input type="text" id="location" name="location" class="input-box" placeholder="Enter issue location" required>
-                
-                <div class="location-buttons">
-                    <button type="button" id="autoLocateBtn" class="action-btn">
-                        <i class='bx bx-current-location'></i> Use My Location
-                    </button>
-                    <button type="button" id="mapButton" class="action-btn">
-                        <i class='bx bx-map-alt'></i> Google Maps
-                    </button>
+                    <!-- IMAGE UPLOAD (right on desktop, second on mobile) -->
+                    <div class="grid-image">
+                        <h2 style="text-align: center; margin-bottom: 20px;">Upload Image</h2>
+                        <label for="input-file" id="drop-area">
+                            <input type="file" name="image" accept="image/*" id="input-file" hidden>
+                            <div id="img-view" style="position: relative;">
+                                <div id="uploadContent" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%;">
+                                    <i class='bx bx-cloud-upload' style="font-size: 50px; margin-bottom: 10px; color: #fff;"></i>
+                                    <p>Drag & drop or click to upload</p>
+                                    <span>Supports JPG, PNG</span>
+                                </div>
+                                <img id="previewImage" alt="Preview" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 18px;">
+                            </div>
+                        </label>
+
+                        <button type="button" id="analyzeButton" class="action-btn ai-btn">
+                            <i class='bx bxs-magic-wand'></i> Analyze Image with AI
+                        </button>
+                        <p id="analyzeMessage" class="message-text" style="color: #10b981;"></p>
+                    </div>
+
+                    <!-- DESCRIPTION (spans full width on desktop, last on mobile) -->
+                    <div class="grid-description">
+                        <h2 style="text-align: center; margin-top: 0; margin-bottom: 10px;">Description</h2>
+                        <textarea name="ai_description" id="description" placeholder="Click 'Analyze Image with AI', then review or edit the description here..." required></textarea>
+                    </div>
+
                 </div>
-                
-                <p id="mapMessage" class="message-text" style="color: rgba(255,255,255,0.7);"></p>
-                <div id="locationMap"></div>
-                
-                <input type="hidden" id="latitude" name="latitude">
-                <input type="hidden" id="longitude" name="longitude">
-
-                <!-- 3. DESCRIPTION -->
-                <h2 style="text-align: center; margin-top: 40px; margin-bottom: 10px;">Description</h2>
-                <textarea name="description" id="description" placeholder="Click 'Analyze Image with AI', then review or edit the description here..." required></textarea>
 
                 <button type="submit" class="submit-btn">Submit Report</button>
                 <p id="message" class="message-text"></p>
@@ -358,8 +403,7 @@ if (!isset($_SESSION['id']) || ($_SESSION['role'] ?? '') === 'admin') {
             e.preventDefault();
             
             const formData = new FormData(reportForm);
-            if (inputFile.files[0]) formData.append("image", inputFile.files[0]);
-            
+
             const submitBtn = reportForm.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Submitting...";

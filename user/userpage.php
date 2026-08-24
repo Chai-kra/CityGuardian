@@ -98,6 +98,26 @@ $reports_result = $stmt->get_result();
         .report-detail-row strong {
             color: #fff;
         }
+
+        /* ---- Fix: email text overflowing the sidebar box ---- */
+        .admin-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0; /* allow flex children to shrink below content size */
+        }
+
+        .admin-toggle span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .admin-menu-item {
+            min-width: 0;
+        }
     </style>
     
 </head>
@@ -170,8 +190,8 @@ $reports_result = $stmt->get_result();
     <header class="main-header">
 
         <div class="header-title">
-            <h1>My Reports</h1>
-            <p>Track the civic issues you've submitted</p>
+            <h1 id="page-heading">My Reports</h1>
+            <p id="page-subheading">Track the civic issues you've submitted</p>
         </div>
 
         <div class="header-actions">
@@ -251,6 +271,25 @@ $reports_result = $stmt->get_result();
 <script>
 const userEmail = <?php echo json_encode($user['email'] ?? ''); ?>;
 
+const pageHeading = document.getElementById('page-heading');
+const pageSubheading = document.getElementById('page-subheading');
+
+// Text shown in the header for each page
+const pageText = {
+    report: {
+        title: 'My Reports',
+        subtitle: "Track the civic issues you've submitted"
+    },
+    profile: {
+        title: 'Profile',
+        subtitle: 'View your account information'
+    },
+    settings: {
+        title: 'Settings',
+        subtitle: 'Manage your account settings'
+    }
+};
+
 function setActiveMenu(page) {
     document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
     const active = document.getElementById('menu-' + page);
@@ -259,6 +298,13 @@ function setActiveMenu(page) {
 
 function switchPage(page) {
     const pageContent = document.getElementById('page-content');
+
+    // Update the header title + subtitle for every page switch
+    const text = pageText[page];
+    if (text) {
+        pageHeading.textContent = text.title;
+        pageSubheading.textContent = text.subtitle;
+    }
 
     if (page === 'report') {
         setActiveMenu('report');
