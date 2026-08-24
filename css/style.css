@@ -1042,6 +1042,7 @@ a {
 }
 
 #drop-area {
+    display: block;
     width: 500px;
     max-width: 90%; /* Keeps it fully responsive on mobile phones */
     height: 280px;
