@@ -136,7 +136,6 @@ $filteredReports = array_values(array_filter(
             $report['report_id'] ?? '',
             $report['issue_type'] ?? '',
             $report['location'] ?? '',
-            $report['description'] ?? '',
             $report['extra_details'] ?? '',
             $report['ai_description'] ?? ''
         ]);
@@ -594,7 +593,7 @@ $sections = [
                                                     <div class="case-top"><span>Case #<?php echo $reportId; ?></span><span><?php echo e(displayDate($report['created_at'] ?? '')); ?></span></div>
                                                     <h3 class="case-title"><?php echo e($report['issue_type'] ?: 'General issue'); ?></h3>
                                                     <p class="case-location"><i class="bx bx-map"></i><span><?php echo e($report['location'] ?: 'Location not provided'); ?></span></p>
-                                                    <p class="case-description"><?php echo e($report['description'] ?: 'No description provided.'); ?></p>
+                                                    <p class="case-description"><?php echo e($report['ai_description'] ?: 'No description provided.'); ?></p>
                                                     <p class="case-extra"><?php echo e($extraDetails !== '' ? 'Nearby: ' . $extraDetails : 'No nearby facilities provided.'); ?></p>
                                                     <div class="case-actions">
                                                         <span class="priority-badge <?php echo e(priorityClass($displayPriority)); ?>"><?php echo e($displayPriority); ?></span>
