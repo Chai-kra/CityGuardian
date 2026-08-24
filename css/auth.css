@@ -352,6 +352,21 @@ body.auth-page {
     box-shadow: 0 0 0 1000px #0d1744 inset !important;
 }
 
+.auth-field-help {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 7px;
+    color: #7180a8;
+    font-size: 8px;
+    line-height: 1.5;
+}
+
+.auth-field-help i {
+    color: var(--auth-blue-light);
+    font-size: 12px;
+}
+
 .password-toggle {
     display: grid;
     width: 34px;
