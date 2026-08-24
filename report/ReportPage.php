@@ -743,13 +743,6 @@ $conn->close();
 
             <div class="narrative-grid">
                 <article class="narrative-card">
-                    <span class="card-label"><i class="bx bx-user"></i>User Description</span>
-                    <p class="narrative-text">
-                        <?php echo nl2br(e($report['description'] ?: 'Not available')); ?>
-                    </p>
-                </article>
-
-                <article class="narrative-card">
                     <span class="card-label"><i class="bx bx-map-pin"></i>Nearby Facilities / Extra Details</span>
                     <p class="narrative-text<?php echo $extraDetails === '' ? ' empty-text' : ''; ?>">
                         <?php

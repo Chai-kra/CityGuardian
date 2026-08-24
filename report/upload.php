@@ -168,7 +168,6 @@ $sql = "INSERT INTO reports (
     user_id,
     issue_type,
     location,
-    description,
     extra_details,
     image,
     ai_description,
@@ -176,7 +175,7 @@ $sql = "INSERT INTO reports (
     ai_department,
     ai_confidence,
     status
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 
@@ -192,11 +191,10 @@ if (!$stmt) {
 }
 
 $stmt->bind_param(
-    "issssssssss",
+    "isssssssss",
     $userId,
     $issue,
     $location,
-    $description,
     $extraDetails,
     $imageName,
     $aiDescription,
