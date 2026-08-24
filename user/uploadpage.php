@@ -251,11 +251,11 @@ $userInitial = strtoupper(substr($userName, 0, 1));
             transition: .18s ease;
         }
         .upload-zone:hover, .upload-zone.dragging { border-color: var(--blue-light); background: rgba(51, 117, 245, .07); }
-        .upload-empty { padding: 28px; }
-        .upload-icon { display: grid; width: 58px; height: 58px; margin: 0 auto 13px; place-items: center; border: 1px solid rgba(107, 154, 255, .3); border-radius: 17px; color: var(--blue-light); background: rgba(51, 117, 245, .11); font-size: 28px; }
+        .upload-empty { display: flex; width: 100%; min-height: 281px; align-items: center; justify-content: center; flex-direction: column; padding: 28px; text-align: center; }
+        .upload-empty .upload-icon { display: grid; width: 58px; height: 58px; margin: 0 0 13px; padding: 0; place-items: center; border: 1px solid rgba(107, 154, 255, .3); border-radius: 17px; color: var(--blue-light); background: rgba(51, 117, 245, .11); font-size: 28px; }
         .upload-empty strong { display: block; font-size: 12px; }
         .upload-empty p { margin-top: 5px; color: #7f8db4; font-size: 9px; line-height: 1.6; }
-        .upload-empty span { display: inline-block; margin-top: 10px; padding: 5px 8px; border-radius: 999px; color: #7685ad; background: rgba(255, 255, 255, .04); font-size: 8px; }
+        .upload-empty .file-rules { display: inline-block; margin-top: 10px; padding: 5px 8px; border-radius: 999px; color: #7685ad; background: rgba(255, 255, 255, .04); font-size: 8px; }
         .preview-wrap { position: absolute; inset: 0; display: none; background: #080e30; }
         .preview-wrap.visible { display: block; }
         .preview-image { width: 100%; height: 100%; object-fit: contain; }
@@ -286,6 +286,11 @@ $userInitial = strtoupper(substr($userName, 0, 1));
         .ai-button:disabled { color: #6f7da5; border-color: var(--line); background: rgba(255, 255, 255, .04); box-shadow: none; cursor: not-allowed; }
         .description-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 7px; color: #6e7ba3; font-size: 8px; }
         .description-footer span.valid { color: var(--green); }
+        .optional-details { margin-top: 21px; padding-top: 20px; border-top: 1px solid var(--line); }
+        .optional-details-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+        .optional-details-heading strong { display: block; color: #d2d9eb; font-size: 11px; }
+        .optional-details-heading p { margin-top: 3px; color: #7f8db4; font-size: 8px; line-height: 1.6; }
+        .extra-details-input { min-height: 105px; }
         .submit-panel { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 18px; padding: 17px 19px; border: 1px solid var(--line); border-radius: 16px; background: rgba(17, 24, 68, .75); }
         .submission-message { min-height: 18px; color: #8e9abc; font-size: 9px; line-height: 1.5; }
         .submission-message.success { color: var(--green); }
@@ -448,7 +453,7 @@ $userInitial = strtoupper(substr($userName, 0, 1));
                                 <span class="upload-icon"><i class="bx bx-cloud-upload"></i></span>
                                 <strong>Drop a photo here</strong>
                                 <p>or click to browse from your device</p>
-                                <span>JPG, PNG or WEBP · Maximum 8 MB</span>
+                                <span class="file-rules">JPG, PNG or WEBP · Maximum 8 MB</span>
                             </span>
                             <span class="preview-wrap" id="previewWrap">
                                 <img class="preview-image" id="previewImage" alt="Selected issue preview">
@@ -475,6 +480,20 @@ $userInitial = strtoupper(substr($userName, 0, 1));
                         <div class="description-footer">
                             <span id="descriptionHint">Enter at least 10 characters.</span>
                             <span id="characterCount">0 / 1200</span>
+                        </div>
+                        <div class="optional-details">
+                            <div class="optional-details-heading">
+                                <div>
+                                    <strong>Nearby Facilities / Extra Details</strong>
+                                    <p>Describe what is near the area so the department can find it faster, such as a school, clinic, bus stop, shop or landmark.</p>
+                                </div>
+                                <span class="requirement optional">Optional</span>
+                            </div>
+                            <textarea class="description-input extra-details-input" name="extra_details" id="extraDetails" maxlength="600" placeholder="Example: The pothole is opposite the school entrance, beside the bus stop and near a traffic light..."></textarea>
+                            <div class="description-footer">
+                                <span>You may leave this empty.</span>
+                                <span id="extraDetailsCount">0 / 600</span>
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -522,6 +541,8 @@ $userInitial = strtoupper(substr($userName, 0, 1));
         const descriptionBox = document.getElementById('description');
         const descriptionHint = document.getElementById('descriptionHint');
         const characterCount = document.getElementById('characterCount');
+        const extraDetails = document.getElementById('extraDetails');
+        const extraDetailsCount = document.getElementById('extraDetailsCount');
         const message = document.getElementById('message');
         const submitButton = document.getElementById('submitButton');
         const progressFill = document.getElementById('progressFill');
@@ -591,6 +612,22 @@ $userInitial = strtoupper(substr($userName, 0, 1));
             progressText.textContent = completeCount + ' of 3 steps ready';
         }
 
+        function updateAnalyzeAvailability(updateMessage = true) {
+            const hasLocation = locationInput.value.trim().length >= 3;
+            const hasPhoto = Boolean(inputFile.files[0]);
+            analyzeButton.disabled = !(hasLocation && hasPhoto);
+            if (!updateMessage) return;
+            if (!hasLocation && !hasPhoto) {
+                setLiveMessage(analyzeMessage, 'Enter a location first, then upload a photo to use AI.', '');
+            } else if (!hasLocation) {
+                setLiveMessage(analyzeMessage, 'Photo ready. Enter a location to enable AI analysis.', '');
+            } else if (!hasPhoto) {
+                setLiveMessage(analyzeMessage, 'Location ready. Upload a photo to enable AI analysis.', '');
+            } else {
+                setLiveMessage(analyzeMessage, 'Location and photo ready. You can now use AI analysis.', 'success');
+            }
+        }
+
         function initMap() {
             if (typeof L === 'undefined') {
                 setLiveMessage(mapMessage, 'Map could not load. You can still enter the address manually.', 'error');
@@ -639,6 +676,7 @@ $userInitial = strtoupper(substr($userName, 0, 1));
                 console.error(error);
             }
             updateProgress();
+            updateAnalyzeAvailability();
         }
 
         async function searchLocation(query) {
@@ -669,6 +707,7 @@ $userInitial = strtoupper(substr($userName, 0, 1));
         locationInput.addEventListener('input', () => {
             clearTimeout(locationTimer);
             updateProgress();
+            updateAnalyzeAvailability();
             const query = locationInput.value.trim();
             if (query.length < 3) {
                 setLiveMessage(mapMessage, '', '');
@@ -722,9 +761,8 @@ $userInitial = strtoupper(substr($userName, 0, 1));
             inputFile.value = '';
             previewImage.removeAttribute('src');
             previewWrap.classList.remove('visible');
-            analyzeButton.disabled = true;
-            setLiveMessage(analyzeMessage, 'Upload a photo to enable AI analysis.', '');
             updateProgress();
+            updateAnalyzeAvailability();
         }
 
         function usePhoto(file) {
@@ -745,9 +783,8 @@ $userInitial = strtoupper(substr($userName, 0, 1));
             fileName.textContent = file.name;
             fileSize.textContent = formatBytes(file.size) + ' · Click image to change';
             previewWrap.classList.add('visible');
-            analyzeButton.disabled = false;
-            setLiveMessage(analyzeMessage, 'Photo ready. You can now generate an AI description.', 'success');
             updateProgress();
+            updateAnalyzeAvailability();
         }
 
         inputFile.addEventListener('change', () => {
@@ -775,9 +812,18 @@ $userInitial = strtoupper(substr($userName, 0, 1));
         });
 
         analyzeButton.addEventListener('click', async () => {
+            const location = locationInput.value.trim();
             const file = inputFile.files[0];
+            if (location.length < 3) {
+                setLiveMessage(mapMessage, 'Enter the issue location before using AI analysis.', 'error');
+                showToast('error', 'Location required', 'Enter a location first, then analyze the uploaded photo.');
+                locationInput.focus();
+                updateAnalyzeAvailability();
+                return;
+            }
             if (!file) {
                 showToast('error', 'Photo required', 'Upload a photo before using AI analysis.');
+                updateAnalyzeAvailability();
                 return;
             }
             analyzeButton.disabled = true;
@@ -801,7 +847,7 @@ $userInitial = strtoupper(substr($userName, 0, 1));
                 console.error(error);
             } finally {
                 descriptionBox.disabled = false;
-                analyzeButton.disabled = !inputFile.files[0];
+                updateAnalyzeAvailability(false);
                 analyzeButton.innerHTML = '<i class="bx bxs-magic-wand"></i>Analyze photo with AI';
                 descriptionBox.dispatchEvent(new Event('input'));
                 descriptionBox.focus();
@@ -815,6 +861,10 @@ $userInitial = strtoupper(substr($userName, 0, 1));
             descriptionHint.textContent = valid ? 'Description is ready.' : 'Enter at least 10 characters.';
             descriptionHint.classList.toggle('valid', valid);
             updateProgress();
+        });
+
+        extraDetails.addEventListener('input', () => {
+            extraDetailsCount.textContent = extraDetails.value.length + ' / 600';
         });
 
         reportForm.addEventListener('keydown', event => {
@@ -868,6 +918,7 @@ $userInitial = strtoupper(substr($userName, 0, 1));
         window.addEventListener('load', () => {
             initMap();
             updateProgress();
+            updateAnalyzeAvailability();
         });
     </script>
 </body>

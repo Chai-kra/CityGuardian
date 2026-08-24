@@ -1,135 +1,162 @@
 <?php
 session_start();
 
-include "../db.php";
-require_once "classify.php";
-require_once "department_mapping.php";
+require_once __DIR__ . "/../db.php";
+require_once __DIR__ . "/classify.php";
+require_once __DIR__ . "/department_mapping.php";
 
-if (!isset($_SESSION['id'])) {
-    die("User is not logged in. Session ID is missing.");
+function stopRequest($message, $statusCode = 400) {
+    http_response_code($statusCode);
+    exit($message);
 }
 
-$user_id = $_SESSION['id'];
+function textLength($text) {
+    return function_exists("mb_strlen")
+        ? mb_strlen($text, "UTF-8")
+        : strlen($text);
+}
+
+if (!isset($_SESSION["id"])) {
+    stopRequest("User is not logged in.", 401);
+}
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    echo "Invalid request.";
-    exit();
+    stopRequest("Invalid request.", 405);
 }
 
-$issue = null;
-$location = $_POST['location'] ?? '';
-$description = $_POST['ai_description'] ?? '';
+$userId = (int) $_SESSION["id"];
+$location = trim($_POST["location"] ?? "");
+$description = trim($_POST["ai_description"] ?? "");
+$extraDetails = trim($_POST["extra_details"] ?? "");
 
-if (empty($location) || empty($description)) {
-    echo "Location and description are required.";
-    exit();
+if ($location === "") {
+    stopRequest("Location is required.");
 }
 
+if ($description === "") {
+    stopRequest("Description is required.");
+}
 
-// =========================
-// UPLOAD IMAGE
-// =========================
+if (textLength($description) < 10) {
+    stopRequest("Description must contain at least 10 characters.");
+}
 
+if (textLength($description) > 1200) {
+    stopRequest("Description cannot exceed 1200 characters.");
+}
+
+if (textLength($extraDetails) > 600) {
+    stopRequest("Extra details cannot exceed 600 characters.");
+}
+
+$issue = "General";
 $imageName = "";
+$imagePath = "";
 
-if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-
-    $uploadDir = "uploads/";
-
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
+if (
+    isset($_FILES["image"]) &&
+    $_FILES["image"]["error"] !== UPLOAD_ERR_NO_FILE
+) {
+    if ($_FILES["image"]["error"] !== UPLOAD_ERR_OK) {
+        stopRequest("The image could not be uploaded.");
     }
 
-    $extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+    if ($_FILES["image"]["size"] > 8 * 1024 * 1024) {
+        stopRequest("Image must be smaller than 8 MB.");
+    }
 
-    $imageName = uniqid() . "." . $extension;
+    $imageInfo = @getimagesize($_FILES["image"]["tmp_name"]);
 
-    $imagePath = $uploadDir . $imageName;
+    if ($imageInfo === false) {
+        stopRequest("The selected file is not a valid image.");
+    }
 
-    if (!move_uploaded_file($_FILES['image']['tmp_name'], $imagePath)) {
-        echo "Failed to upload image.";
-        exit();
+    $mimeType = $imageInfo["mime"] ?? "";
+
+    $allowedTypes = [
+        "image/jpeg" => "jpg",
+        "image/png" => "png",
+        "image/webp" => "webp"
+    ];
+
+    if (!isset($allowedTypes[$mimeType])) {
+        stopRequest("Only JPG, PNG and WEBP images are allowed.");
+    }
+
+    $uploadDirectory = __DIR__ . "/uploads/";
+
+    if (
+        !is_dir($uploadDirectory) &&
+        !mkdir($uploadDirectory, 0755, true)
+    ) {
+        stopRequest("The upload folder could not be created.", 500);
+    }
+
+    try {
+        $imageName = bin2hex(random_bytes(16));
+    } catch (Throwable $error) {
+        $imageName = uniqid("report_", true);
+    }
+
+    $imageName .= "." . $allowedTypes[$mimeType];
+    $imagePath = $uploadDirectory . $imageName;
+
+    if (!move_uploaded_file($_FILES["image"]["tmp_name"], $imagePath)) {
+        stopRequest("Failed to save the uploaded image.", 500);
     }
 }
-
-
-// =========================
-// DEFAULT VALUES
-// =========================
 
 $aiDescription = $description;
 $aiPriority = null;
 $aiDepartment = "DBKL Engineering Department";
 $aiConfidence = null;
-
 $status = "Pending";
 
-
-// =========================
-// AI CLASSIFICATION
-// =========================
-
 if ($imageName !== "") {
-
     $result = classifyIssue(
         $imagePath,
         $description,
         $location
     );
 
-    if (isset($result['success'])) {
+    if (!empty($result["success"])) {
+        $data = $result["data"] ?? [];
 
-        // AI description
-        $aiDescription = $result['data']['description'] ?? $description;
+        $aiDescription = $data["description"] ?? $description;
 
-
-        // AI priority
         $priorityMap = [
-            'critical' => 'Critical',
-            'high' => 'High',
-            'medium' => 'Medium',
-            'low' => 'Low'
+            "critical" => "Critical",
+            "high" => "High",
+            "medium" => "Medium",
+            "low" => "Low"
         ];
 
-        $rawPriority = strtolower(
-            $result['data']['priority'] ?? ''
-        );
-
+        $rawPriority = strtolower($data["priority"] ?? "");
         $aiPriority = $priorityMap[$rawPriority] ?? null;
 
-
-        // AI confidence
-        if (isset($result['data']['confidence'])) {
+        if (
+            isset($data["confidence"]) &&
+            is_numeric($data["confidence"])
+        ) {
+            $confidence = (float) $data["confidence"];
 
             $aiConfidence = round(
-                $result['data']['confidence'] * 100,
+                $confidence <= 1
+                    ? $confidence * 100
+                    : $confidence,
                 2
             );
         }
 
+        $issue = $data["issue"] ?? "General";
 
-        // AI issue
-        $aiIssueType = $result['data']['issue'] ?? 'General';
-
-        $issue = $aiIssueType;
-
-
-        // Other AI information
-        $facilityType = $result['data']['facility_type'] ?? null;
-        $roadType = $result['data']['road_type'] ?? null;
-        $floodSource = $result['data']['flood_source'] ?? null;
-
-
-        // Determine department
         $aiDepartment = determineDepartment(
-            $aiIssueType,
-            $facilityType,
-            $roadType,
-            $floodSource
+            $issue,
+            $data["facility_type"] ?? null,
+            $data["road_type"] ?? null,
+            $data["flood_source"] ?? null
         );
-
     } else {
-
         error_log(
             "AI classification failed: " .
             json_encode($result)
@@ -137,40 +164,40 @@ if ($imageName !== "") {
     }
 }
 
-
-// =========================
-// INSERT REPORT
-// =========================
-
-$sql = "INSERT INTO reports
-(
+$sql = "INSERT INTO reports (
     user_id,
     issue_type,
     location,
     description,
+    extra_details,
     image,
     ai_description,
     ai_priority,
     ai_department,
     ai_confidence,
     status
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 
 if (!$stmt) {
-    echo "Database error: " . $conn->error;
-    exit();
+    if ($imagePath !== "" && file_exists($imagePath)) {
+        unlink($imagePath);
+    }
+
+    stopRequest(
+        "Database error: " . $conn->error,
+        500
+    );
 }
 
-
 $stmt->bind_param(
-    "isssssssss",
-    $user_id,
+    "issssssssss",
+    $userId,
     $issue,
     $location,
     $description,
+    $extraDetails,
     $imageName,
     $aiDescription,
     $aiPriority,
@@ -179,19 +206,18 @@ $stmt->bind_param(
     $status
 );
 
+if (!$stmt->execute()) {
+    if ($imagePath !== "" && file_exists($imagePath)) {
+        unlink($imagePath);
+    }
 
-if ($stmt->execute()) {
-
-    echo "Report submitted successfully!";
-
-} else {
-
-    echo "Database error: " . $stmt->error;
-
+    stopRequest(
+        "Database error: " . $stmt->error,
+        500
+    );
 }
-
 
 $stmt->close();
 $conn->close();
 
-?>
+echo "Report submitted successfully!";
