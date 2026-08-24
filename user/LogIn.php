@@ -38,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['id'] = $user['id'];
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role'];
-            $_SESSION['department'] = $user['department'];
+            $_SESSION['department'] = $user['department']?? '';
 
             $loginSuccess = true;
 
@@ -176,7 +176,7 @@ unset($_SESSION['error']);
 
 
 <div
-    class="loader-overlay<?php echo $loginSuccess ? ' active' : ''; ?>"
+    class="loader-overlay<?php echo $loginSuccess ? ' loader-active' : ''; ?>"
     id="loaderOverlay"
 >
 
