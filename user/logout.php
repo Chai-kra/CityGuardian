@@ -1,27 +1,59 @@
 <?php
+declare(strict_types=1);
+
 session_start();
+require_once __DIR__ . "/../db.php";
 
-// Clear all session variables
-$_SESSION = array();
+const REMEMBER_COOKIE = "cityguardian_remember";
 
-// Destroy the session cookie itself, if one is used
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(
-        session_name(),
-        '',
-        time() - 42000,
-        $params["path"],
-        $params["domain"],
-        $params["secure"],
-        $params["httponly"]
-    );
+function isHttpsRequest(): bool
+{
+    return !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off";
 }
 
-// Destroy the session data on the server
-session_destroy();
+$rememberCookie = $_COOKIE[REMEMBER_COOKIE] ?? "";
 
-// Send the user back to the login page
-header("Location: ../user/LogIn.php");
+if ($rememberCookie !== "") {
+    $parts = explode(":", $rememberCookie, 2);
+    $selector = $parts[0] ?? "";
+
+    if (strlen($selector) === 24 && ctype_xdigit($selector)) {
+        $stmt = $conn->prepare("DELETE FROM remember_tokens WHERE selector = ?");
+
+        if ($stmt) {
+            $stmt->bind_param("s", $selector);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+}
+
+setcookie(REMEMBER_COOKIE, "", [
+    "expires" => time() - 3600,
+    "path" => "/",
+    "secure" => isHttpsRequest(),
+    "httponly" => true,
+    "samesite" => "Lax"
+]);
+
+$_SESSION = [];
+
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+
+    setcookie(session_name(), "", [
+        "expires" => time() - 42000,
+        "path" => $params["path"],
+        "domain" => $params["domain"],
+        "secure" => (bool) $params["secure"],
+        "httponly" => (bool) $params["httponly"],
+        "samesite" => "Lax"
+    ]);
+}
+
+session_destroy();
+$conn->close();
+
+header("Location: LogIn.php");
 exit();
 ?>
