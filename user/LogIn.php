@@ -355,13 +355,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </main>
     </div>
 
-    <div class="auth-loader<?php echo $loginSuccess ? " is-active" : ""; ?>" id="loaderOverlay" aria-live="polite" aria-hidden="<?php echo $loginSuccess ? "false" : "true"; ?>">
-        <div class="loader-card">
-            <span class="loader-shield"><i class="bx bxs-shield-alt-2"></i></span>
-            <span class="loader-ring"></span>
-            <strong>Login successful</strong>
-            <small>Opening your dashboard…</small>
+    <div class="loader-overlay<?php echo $loginSuccess ? " active" : ""; ?>" id="loaderOverlay" aria-live="polite" aria-hidden="<?php echo $loginSuccess ? "false" : "true"; ?>">
+        <div class="loader-ship">
+            <span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+            <div class="loader-base">
+                <span></span>
+                <div class="loader-face"></div>
+            </div>
         </div>
+
+        <div class="longfazers">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <h1>Redirecting</h1>
     </div>
 
     <script>
@@ -389,7 +404,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php if ($loginSuccess): ?>
         setTimeout(function () {
             window.location.replace(<?php echo json_encode($redirectPage); ?>);
-        }, 900);
+        }, 1500);
         <?php endif; ?>
     </script>
 </body>
