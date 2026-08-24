@@ -280,7 +280,7 @@ uasort($departments, function ($left, $right) {
 <aside class="sidebar">
 
     <div class="sidebar-header">
-        <a href="caseReview.php" class="nav-logo">
+        <a href="/user/caseReview.php" class="nav-logo">
             <h2 class="logo-text">AI City Guardian</h2>
         </a>
     </div>
@@ -288,14 +288,14 @@ uasort($departments, function ($left, $right) {
     <ul class="sidebar-menu">
 
         <li class="sidebar-item">
-            <a href="caseReview.php" class="sidebar-link">
+            <a href="/user/caseReview.php" class="sidebar-link">
                 <i class="bx bxs-dashboard"></i>
                 <span>Case Review</span>
             </a>
         </li>
 
         <li class="sidebar-item active">
-            <a href="adminStatistics.php" class="sidebar-link">
+            <a href="/user/adminStatistics.php" class="sidebar-link">
                 <i class="bx bx-bar-chart-alt-2"></i>
                 <span>Statistics</span>
             </a>
@@ -322,7 +322,7 @@ uasort($departments, function ($left, $right) {
 
                 <div class="logout-dropdown">
 
-                    <a href="../user/logout.php"
+                    <a href="/user/logout.php"
                        class="logout-btn">
 
                         <i class="bx bx-log-out"></i>
@@ -353,7 +353,7 @@ uasort($departments, function ($left, $right) {
 
         <form class="header-actions statistics-form"
               method="get"
-              action="adminStatistics.php">
+              action="/user/adminStatistics.php">
 
             <input class="statistics-date"
                    type="date"
@@ -372,7 +372,7 @@ uasort($departments, function ($left, $right) {
             </button>
 
             <a class="refresh-btn refresh-link"
-               href="adminStatistics.php"
+               href="/user/adminStatistics.php"
                aria-label="Clear dates"
                title="Clear dates">
 
