@@ -127,7 +127,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: rgb(132, 98, 219);
+    background: #111844;
 }
 
 .login-box{
@@ -229,7 +229,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: rgb(132, 98, 219);
+    background: #111844;
 }
 
 .register-box{

@@ -91,7 +91,7 @@ unset($_SESSION['error']);
 
 </head>
 
-<body>
+<body class="login">
 
 <div class="login-box">
 
