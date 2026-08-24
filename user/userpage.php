@@ -19,6 +19,17 @@ if (!$user) {
     exit("User not found.");
 }
 
+function e($value) {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function priorityClass($priority) {
+    $priority = strtolower($priority);
+    $allowed = ['critical', 'high', 'medium', 'low'];
+
+    return in_array($priority, $allowed, true) ? $priority : 'medium';
+}
+
 $sql = "SELECT * FROM reports WHERE user_id = ? ORDER BY report_id ASC";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $user_id);
@@ -34,98 +45,145 @@ $reports_result = $stmt->get_result();
     <title>User Page</title>
 
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
 
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #e0e0e0;
-        }
-
-        .container {
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background-color: #1a237e;
-            color: white;
-            padding: 15px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .brand {
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .nav-links button {
-            background: none;
-            border: none;
-            color: #b0bec5;
-            font-size: 14px;
-            margin-left: 20px;
+        .admin-toggle {
+            width: 100%;
+            border: 0;
+            background: transparent;
             cursor: pointer;
-            padding: 5px 0;
+            text-align: left;
         }
 
-        .nav-links button.active,
-        .nav-links button:hover {
-            color: white;
+        .admin-menu-item.menu-open .logout-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
         }
 
-        .nav-links button.active {
-            border-bottom: 2px solid white;
+        .header-actions .form-btn {
+            flex: none;
         }
 
-        .main-container {
-            padding: 20px;
+        .badge.high {
+            background: rgba(255, 128, 64, 0.2);
+            color: #ff9b69;
+            border: 1px solid #ff9b69;
         }
 
-        .report-container {
-            margin: 10px;
-            padding: 20px;
-            background-color: #a7c6ff;
-            border-radius: 8px;
+        .badge.low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid #34d399;
         }
 
-        .report-container img {
-            max-width: 300px;
-            border-radius: 5px;
+        .report-image {
+            max-width: 280px;
+            border-radius: 10px;
+            margin-top: 12px;
+            display: block;
         }
 
-        .submit-button {
-            display: inline-block;
-            margin: 10px;
-            padding: 10px 18px;
-            background-color: #1a237e;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
+        .form-card + .form-card {
+            margin-top: 25px;
+        }
+
+        .report-detail-row {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 8px;
+        }
+
+        .report-detail-row strong {
+            color: #fff;
         }
     </style>
+    
 </head>
 
 <body>
 
-<div class="container">
+<aside class="sidebar">
 
-    <header class="navbar">
-        <div class="brand">
-            <i class="bx bxs-user"></i>
-            User Page
+    <div>
+        <div class="sidebar-header">
+            <a href="../user/userpage.php" class="nav-logo">
+                <h2 class="logo-text">AI City Guardian</h2>
+            </a>
         </div>
 
-        <div class="nav-links">
-            <button class="active" id="btn-report" onclick="switchPage('report')">Reports</button>
-            <button id="btn-profile" onclick="switchPage('profile')">Profile</button>
-            <button id="btn-settings" onclick="switchPage('settings')">Settings</button>
-            <button id="btn-logout" onclick="switchPage('logout')">Logout</button>
+        <ul class="sidebar-menu">
+
+            <li class="sidebar-item active" id="menu-report">
+                <a href="#" class="sidebar-link" onclick="switchPage('report'); return false;">
+                    <i class="bx bxs-report"></i>
+                    <span>My Reports</span>
+                </a>
+            </li>
+
+            <li class="sidebar-item" id="menu-profile">
+                <a href="#" class="sidebar-link" onclick="switchPage('profile'); return false;">
+                    <i class="bx bxs-user"></i>
+                    <span>Profile</span>
+                </a>
+            </li>
+
+            <li class="sidebar-item" id="menu-settings">
+                <a href="#" class="sidebar-link" onclick="switchPage('settings'); return false;">
+                    <i class="bx bxs-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+
+        </ul>
+    </div>
+
+    <div class="sidebar-footer">
+
+        <ul class="sidebar-menu">
+
+            <li class="sidebar-item admin-menu-item" id="admin-menu-item">
+
+                <button type="button" class="sidebar-link admin-toggle" id="admin-toggle" aria-expanded="false">
+                    <i class="bx bxs-user-circle"></i>
+                    <span><?php echo e($user['email'] ?? 'Account'); ?></span>
+                </button>
+
+                <div class="logout-dropdown">
+                    <a href="../user/logout.php" class="logout-btn">
+                        <i class="bx bx-log-out"></i>
+                        Logout
+                    </a>
+                </div>
+
+            </li>
+
+        </ul>
+
+    </div>
+
+</aside>
+
+<div class="main-content">
+
+    <header class="main-header">
+
+        <div class="header-title">
+            <h1>My Reports</h1>
+            <p>Track the civic issues you've submitted</p>
         </div>
+
+        <div class="header-actions">
+            <a href="../user/uploadpage.php" class="form-btn primary">
+                <i class="bx bx-plus"></i>
+                Submit New Report
+            </a>
+        </div>
+
     </header>
 
-    <main class="main-container">
+    <main id="page-content">
 
         <?php if ($reports_result->num_rows > 0): ?>
 
@@ -133,43 +191,42 @@ $reports_result = $stmt->get_result();
 
             <?php while ($report = $reports_result->fetch_assoc()): ?>
 
-                <div class="report-container">
+                <?php $displayPriority = $report['ai_priority'] ?: 'Not analysed'; ?>
 
-                    <h2>Report <?php echo $report_number; ?></h2>
+                <div class="form-card">
 
-                    <p>
-                        <strong>Issue Type:</strong>
-                        <?php echo htmlspecialchars($report['issue_type'] ?? 'Not provided'); ?>
+                    <div class="form-card-title">
+                        Report <?php echo $report_number; ?>
+                        <?php if ($report['ai_priority']): ?>
+                            <span class="badge <?php echo e(priorityClass($displayPriority)); ?>">
+                                <?php echo e($displayPriority); ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <p class="report-detail-row">
+                        <strong>Issue Type:</strong> <?php echo e($report['issue_type'] ?? 'Not provided'); ?>
                     </p>
 
-                    <p>
-                        <strong>Location:</strong>
-                        <?php echo htmlspecialchars($report['location'] ?? 'Not provided'); ?>
+                    <p class="report-detail-row">
+                        <strong>Location:</strong> <?php echo e($report['location'] ?? 'Not provided'); ?>
                     </p>
 
-                    <p>
-                        <strong>Description:</strong>
-                        <?php echo htmlspecialchars($report['description'] ?? 'Not provided'); ?>
+                    <p class="report-detail-row">
+                        <strong>Description:</strong> <?php echo e($report['description'] ?? 'Not provided'); ?>
                     </p>
 
                     <?php if (!empty($report['image'])): ?>
-                        <p><strong>Report Image:</strong></p>
-                        <img src="../user/uploadpage/<?php echo htmlspecialchars($report['image']); ?>">
+                        <p class="report-detail-row"><strong>Report Image:</strong></p>
+                        <img class="report-image" src="../user/uploadpage/<?php echo e($report['image']); ?>">
                     <?php endif; ?>
 
-                    <p>
-                        <strong>AI Priority:</strong>
-                        <?php echo htmlspecialchars($report['ai_priority'] ?? 'Not analysed'); ?>
+                    <p class="report-detail-row">
+                        <strong>Status:</strong> <?php echo e($report['status'] ?? 'Pending'); ?>
                     </p>
 
-                    <p>
-                        <strong>Status:</strong>
-                        <?php echo htmlspecialchars($report['status'] ?? 'Pending'); ?>
-                    </p>
-
-                    <p>
-                        <strong>Submitted:</strong>
-                        <?php echo htmlspecialchars($report['created_at'] ?? ''); ?>
+                    <p class="report-detail-row">
+                        <strong>Submitted:</strong> <?php echo e($report['created_at'] ?? ''); ?>
                     </p>
 
                 </div>
@@ -180,70 +237,73 @@ $reports_result = $stmt->get_result();
 
         <?php else: ?>
 
-            <div class="report-container">
-                <h2>No Reports Yet</h2>
-                <p>You have not uploaded any reports.</p>
+            <div class="form-card">
+                <div class="form-card-title">No Reports Yet</div>
+                <p class="no-reports">You have not uploaded any reports.</p>
             </div>
 
         <?php endif; ?>
-
-        <a href="../user/uploadpage.php" class="submit-button">
-            <i class="bx bx-plus"></i>
-            Submit New Report
-        </a>
 
     </main>
 
 </div>
 
 <script>
+const userEmail = <?php echo json_encode($user['email'] ?? ''); ?>;
+
+function setActiveMenu(page) {
+    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+    const active = document.getElementById('menu-' + page);
+    if (active) active.classList.add('active');
+}
+
 function switchPage(page) {
-
-    const mainContainer = document.querySelector('.main-container');
-
-    const btnReport = document.getElementById('btn-report');
-    const btnProfile = document.getElementById('btn-profile');
-    const btnSettings = document.getElementById('btn-settings');
-    const btnLogout = document.getElementById('btn-logout');
-
-    btnReport.classList.remove('active');
-    btnProfile.classList.remove('active');
-    btnSettings.classList.remove('active');
-    btnLogout.classList.remove('active');
+    const pageContent = document.getElementById('page-content');
 
     if (page === 'report') {
-
-        btnReport.classList.add('active');
+        setActiveMenu('report');
         location.reload();
+        return;
+    }
 
-    } else if (page === 'profile') {
-
-        btnProfile.classList.add('active');
-
-        mainContainer.innerHTML = `
-            <div class="report-container">
-                <h2>Profile Information</h2>
-                <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
+    if (page === 'profile') {
+        setActiveMenu('profile');
+        pageContent.innerHTML = `
+            <div class="form-card">
+                <div class="form-card-title">Profile Information</div>
+                <p class="report-detail-row"><strong>Email:</strong> ${userEmail}</p>
             </div>
         `;
+        return;
+    }
 
-    } else if (page === 'settings') {
-
-        btnSettings.classList.add('active');
-
-        mainContainer.innerHTML = `
-            <div class="report-container">
-                <h2>Settings</h2>
-                <p>Account settings will appear here.</p>
+    if (page === 'settings') {
+        setActiveMenu('settings');
+        pageContent.innerHTML = `
+            <div class="form-card">
+                <div class="form-card-title">Settings</div>
+                <p class="report-detail-row">Account settings will appear here.</p>
             </div>
         `;
-
-    } else if (page === 'logout') {
-
-        window.location.href = "../user/logout.php";
-
+        return;
     }
 }
+
+const adminItem = document.getElementById('admin-menu-item');
+const adminToggle = document.getElementById('admin-toggle');
+
+adminToggle.addEventListener('click', event => {
+    event.stopPropagation();
+    const isOpen = adminItem.classList.toggle('menu-open');
+    adminToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+});
+
+document.addEventListener('click', event => {
+    if (!adminItem.contains(event.target)) {
+        adminItem.classList.remove('menu-open');
+        adminToggle.setAttribute('aria-expanded', 'false');
+    }
+});
 </script>
 
 </body>
