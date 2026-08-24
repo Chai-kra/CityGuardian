@@ -210,6 +210,11 @@ uasort($departments, function ($left, $right) {
         .summary-card-link {
             color: #fff;
             display: block;
+            cursor: default;
+        }
+
+        .summary-card-link:hover {
+            transform: none;
         }
 
         .date-error,
@@ -275,7 +280,7 @@ uasort($departments, function ($left, $right) {
 <aside class="sidebar">
 
     <div class="sidebar-header">
-        <a href="caseReview.php" class="nav-logo">
+        <a href="/user/caseReview.php" class="nav-logo">
             <h2 class="logo-text">AI City Guardian</h2>
         </a>
     </div>
@@ -283,14 +288,14 @@ uasort($departments, function ($left, $right) {
     <ul class="sidebar-menu">
 
         <li class="sidebar-item">
-            <a href="caseReview.php" class="sidebar-link">
+            <a href="/user/caseReview.php" class="sidebar-link">
                 <i class="bx bxs-dashboard"></i>
                 <span>Case Review</span>
             </a>
         </li>
 
         <li class="sidebar-item active">
-            <a href="adminStatistics.php" class="sidebar-link">
+            <a href="/user/adminStatistics.php" class="sidebar-link">
                 <i class="bx bx-bar-chart-alt-2"></i>
                 <span>Statistics</span>
             </a>
@@ -317,7 +322,7 @@ uasort($departments, function ($left, $right) {
 
                 <div class="logout-dropdown">
 
-                    <a href="../user/logout.php"
+                    <a href="/user/logout.php"
                        class="logout-btn">
 
                         <i class="bx bx-log-out"></i>
@@ -348,7 +353,7 @@ uasort($departments, function ($left, $right) {
 
         <form class="header-actions statistics-form"
               method="get"
-              action="adminStatistics.php">
+              action="/user/adminStatistics.php">
 
             <input class="statistics-date"
                    type="date"
@@ -367,7 +372,7 @@ uasort($departments, function ($left, $right) {
             </button>
 
             <a class="refresh-btn refresh-link"
-               href="adminStatistics.php"
+               href="/user/adminStatistics.php"
                aria-label="Clear dates"
                title="Clear dates">
 
@@ -393,45 +398,41 @@ uasort($departments, function ($left, $right) {
         <div class="card-container"
              style="margin-bottom:30px;">
 
-            <a class="card summary-card-link"
-               href="caseReview.php?open=all">
+            <div class="card summary-card-link">
 
                 <div class="card-content">
                     <h3>Total Cases</h3>
                     <p><?php echo $summary['total']; ?> cases</p>
                 </div>
 
-            </a>
+            </div>
 
-            <a class="card summary-card-link"
-               href="caseReview.php?open=action">
+            <div class="card summary-card-link">
 
                 <div class="card-content">
                     <h3>Action Needed</h3>
                     <p><?php echo $summary['action']; ?> cases</p>
                 </div>
 
-            </a>
+            </div>
 
-            <a class="card summary-card-link"
-               href="caseReview.php?open=underway">
+            <div class="card summary-card-link">
 
                 <div class="card-content">
                     <h3>Underway</h3>
                     <p><?php echo $summary['underway']; ?> cases</p>
                 </div>
 
-            </a>
+            </div>
 
-            <a class="card summary-card-link"
-               href="caseReview.php?open=settled">
+            <div class="card summary-card-link">
 
                 <div class="card-content">
                     <h3>Settled</h3>
                     <p><?php echo $summary['settled']; ?> cases</p>
                 </div>
 
-            </a>
+            </div>
 
         </div>
 
