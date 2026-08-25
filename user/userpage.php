@@ -44,6 +44,14 @@ function statusLabel($status) {
     return 'Action Needed';
 }
 
+function formatIssueType($issueType) {
+    if (empty($issueType)) {
+        return 'General Issue';
+    }
+    // Replace underscores with spaces, then capitalize the first letter of each word
+    return ucwords(str_replace('_', ' ', (string)$issueType));
+}
+
 function reportDate($value) {
     if (empty($value)) {
         return 'Date unavailable';
@@ -669,7 +677,7 @@ $filtersActive = $search !== '' || $statusFilter !== '' || $priorityFilter !== '
                                     <span class="priority <?php echo e($priorityClass); ?>"><?php echo e($priorityLabel); ?></span>
                                 </div>
 
-                                <h3 class="card-title"><?php echo e($report['issue_type'] ?: 'General issue'); ?></h3>
+                                <h3 class="card-title"><?php echo e(formatIssueType($report['issue_type'] ?? '')); ?></h3>
 
                                 <p class="card-location">
                                     <i class="bx bx-map"></i>

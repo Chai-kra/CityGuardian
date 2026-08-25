@@ -442,7 +442,7 @@ $conn->close();
         .priority-badge.low { color: #a7f3d0; background: rgba(16, 185, 129, .16); }
         .narrative-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             grid-auto-rows: 1fr;
             gap: 12px;
             align-items: stretch;

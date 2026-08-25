@@ -41,6 +41,14 @@ function validDate($date) {
     return $parsed && $parsed->format('Y-m-d') === $date;
 }
 
+function formatIssueType($issueType) {
+    if (empty($issueType)) {
+        return 'General Issue';
+    }
+    // Replace underscores with spaces, then capitalize the first letter of each word
+    return ucwords(str_replace('_', ' ', (string)$issueType));
+}
+
 function displayDate($value) {
     $timestamp = strtotime((string)$value);
     return $timestamp ? date('M d, Y', $timestamp) : 'Date unavailable';
@@ -591,7 +599,7 @@ $sections = [
                                                 </div>
                                                 <div class="case-body">
                                                     <div class="case-top"><span>Case #<?php echo $reportId; ?></span><span><?php echo e(displayDate($report['created_at'] ?? '')); ?></span></div>
-                                                    <h3 class="case-title"><?php echo e($report['issue_type'] ?: 'General issue'); ?></h3>
+                                                    <h3 class="case-title"><?php echo e(formatIssueType($report['issue_type'] ?? '')); ?></h3>
                                                     <p class="case-location"><i class="bx bx-map"></i><span><?php echo e($report['location'] ?: 'Location not provided'); ?></span></p>
                                                     <p class="case-description"><?php echo e($report['ai_description'] ?: 'No description provided.'); ?></p>
                                                     <p class="case-extra"><?php echo e($extraDetails !== '' ? 'Nearby: ' . $extraDetails : 'No nearby facilities provided.'); ?></p>
