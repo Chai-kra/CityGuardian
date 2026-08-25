@@ -31,6 +31,14 @@ function textLength($value) {
         : strlen($value);
 }
 
+function formatIssueType($issueType) {
+    if (empty($issueType)) {
+        return 'General Issue';
+    }
+    // Replace underscores with spaces, then capitalize the first letter of each word
+    return ucwords(str_replace('_', ' ', (string)$issueType));
+}
+
 if (!isset($_GET['id']) || !ctype_digit((string)$_GET['id'])) {
     http_response_code(400);
     exit('Invalid report ID.');
@@ -690,7 +698,7 @@ $conn->close();
 
                 <article class="info-card">
                     <span class="card-label"><i class="bx bx-category"></i>Issue Type</span>
-                    <div class="card-value"><?php echo e($report['issue_type'] ?: 'Not available'); ?></div>
+                    <div class="card-value"><?php echo e(formatIssueType($report['issue_type'] ?? '')); ?></div>
                 </article>
 
                 <article class="info-card">
