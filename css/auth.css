@@ -501,7 +501,7 @@ body.auth-page {
     inset: 0;
     z-index: 9999;
     display: none;
-    background: rgb(132, 98, 219);
+    background: #111844;
     overflow: hidden;
 }
 
