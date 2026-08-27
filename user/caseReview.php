@@ -181,6 +181,26 @@ $sections = [
         'empty' => 'No settled reports match the filters.'
     ]
 ];
+
+$mapReports = [];
+
+foreach ($filteredReports as $report) {
+    if (
+        isset($report['latitude'], $report['longitude']) &&
+        is_numeric($report['latitude']) &&
+        is_numeric($report['longitude'])
+    ) {
+        $mapReports[] = [
+            'id' => (int)$report['report_id'],
+            'latitude' => (float)$report['latitude'],
+            'longitude' => (float)$report['longitude'],
+            'issue' => formatIssueType($report['issue_type'] ?? ''),
+            'priority' => $report['ai_priority'] ?? 'Not analysed',
+            'status' => $report['status'] ?? 'Pending',
+            'location' => $report['location'] ?? 'Location unavailable'
+        ];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -191,6 +211,7 @@ $sections = [
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <style>
         :root {
@@ -465,6 +486,65 @@ $sections = [
             .case-card { flex-direction: column; }
             .case-image { width: 100%; height: 180px; min-height: 180px; }
         }
+
+        .map-panel {
+            margin-bottom: 18px;
+            padding: 21px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: linear-gradient(
+                145deg,
+                rgba(21, 31, 80, .82),
+                rgba(13, 20, 59, .82)
+            );
+            box-shadow: var(--shadow);
+        }
+
+        .map-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .map-heading h2 {
+            font-size: 15px;
+        }
+
+        .map-heading p {
+            margin-top: 3px;
+            color: #7f8db4;
+            font-size: 9px;
+        }
+
+        .map-count {
+            color: #8190b6;
+            font-size: 9px;
+        }
+
+        #reportsMap {
+            width: 100%;
+            height: 430px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+        }
+
+        @media (max-width: 650px) {
+            .map-panel {
+                padding: 15px;
+            }
+
+            #reportsMap {
+                height: 350px;
+            }
+
+            .map-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
@@ -557,6 +637,22 @@ $sections = [
                 <div><span>Assigned department</span><strong><?php echo e($department); ?></strong></div>
             </div>
 
+            <section class="map-panel">
+                <div class="map-heading">
+                    <div>
+                        <span class="eyebrow">Issue locations</span>
+                        <h2>Reports Map</h2>
+                        <p>View reported issues across your department's area.</p>
+                    </div>
+
+                    <span class="map-count">
+                        <?php echo count($filteredReports); ?> locations
+                    </span>
+                </div>
+
+                <div id="reportsMap"></div>
+            </section>
+
             <section class="section-shell">
                 <div class="section-heading">
                     <div>
@@ -622,6 +718,7 @@ $sections = [
         <footer class="page-footer">&copy; <?php echo date('Y'); ?> AI City Guardian. Authorized department dashboard.</footer>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const body = document.body;
         const mobileMenu = document.getElementById('mobileMenu');
@@ -700,6 +797,53 @@ $sections = [
         window.addEventListener('resize', () => {
             if (window.innerWidth > 900) closeNavigation();
         });
+
+        const mapReports = <?php echo json_encode($mapReports); ?>;
+
+        const reportsMap = L.map('reportsMap').setView(
+            [3.1390, 101.6869],
+            12
+        );
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(reportsMap);
+
+        const mapBounds = [];
+
+        mapReports.forEach(report => {
+            const lat = Number(report.latitude);
+            const lng = Number(report.longitude);
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                return;
+            }
+
+            const marker = L.marker([lat, lng]).addTo(reportsMap);
+
+            marker.bindPopup(`
+                <strong>Case #${report.id}</strong><br>
+                ${report.issue}<br>
+                <small>${report.location}</small><br>
+                <small>Priority: ${report.priority}</small><br>
+                <small>Status: ${report.status}</small><br><br>
+                <a href="../report/ReportPage.php?id=${report.id}">
+                    Review case
+                </a>
+            `);
+
+            mapBounds.push([lat, lng]);
+        });
+
+        if (mapBounds.length > 0) {
+            reportsMap.fitBounds(mapBounds, {
+                padding: [30, 30]
+            });
+        }
     </script>
 </body>
 </html>

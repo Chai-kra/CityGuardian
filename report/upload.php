@@ -29,6 +29,14 @@ $location = trim($_POST["location"] ?? "");
 $description = trim($_POST["ai_description"] ?? "");
 $extraDetails = trim($_POST["extra_details"] ?? "");
 
+$latitude = isset($_POST["latitude"]) && is_numeric($_POST["latitude"])
+    ? (float) $_POST["latitude"]
+    : null;
+
+$longitude = isset($_POST["longitude"]) && is_numeric($_POST["longitude"])
+    ? (float) $_POST["longitude"]
+    : null;
+
 if ($location === "") {
     stopRequest("Location is required.");
 }
@@ -174,8 +182,10 @@ $sql = "INSERT INTO reports (
     ai_priority,
     ai_department,
     ai_confidence,
-    status
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    status,
+    latitude,
+    longitude
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 
@@ -191,7 +201,7 @@ if (!$stmt) {
 }
 
 $stmt->bind_param(
-    "isssssssss",
+    "isssssssssdd",
     $userId,
     $issue,
     $location,
@@ -201,7 +211,9 @@ $stmt->bind_param(
     $aiPriority,
     $aiDepartment,
     $aiConfidence,
-    $status
+    $status,
+    $latitude,
+    $longitude
 );
 
 if (!$stmt->execute()) {
