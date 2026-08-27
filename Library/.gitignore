@@ -1,4 +1,4 @@
-.env
+Library/.env
 vendor/
 .DS_Store
 Thumbs.db
