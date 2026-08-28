@@ -139,6 +139,9 @@ function classifyIssue($imagePath, $aiDescription, $userLocation = '') {
         If the pothole is small, set "priority" to "medium".
         If it is just uneven road, set "priority" to "low".
 
+        Above all, notice that only issues that can cause harm to people will be set to "critical", 
+        else set to "high", "medium" or "low" based on severity of the issue.
+
     KNOWLEDGE;
 
     $userText = "Classify this issue.\n";

@@ -612,7 +612,7 @@ $filtersActive = $search !== '' || $statusFilter !== '' || $priorityFilter !== '
 
                     <select class="filter-select" name="status" aria-label="Filter by status">
                         <option value="">All statuses</option>
-                        <option value="action" <?php echo $statusFilter === 'action' ? 'selected' : ''; ?>>Action Needed</option>
+                        <option value="action" <?php echo $statusFilter === 'action' ? 'selected' : ''; ?>>To investigate</option>
                         <option value="underway" <?php echo $statusFilter === 'underway' ? 'selected' : ''; ?>>Underway</option>
                         <option value="settled" <?php echo $statusFilter === 'settled' ? 'selected' : ''; ?>>Settled</option>
                     </select>
