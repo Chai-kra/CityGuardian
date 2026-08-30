@@ -74,12 +74,14 @@ function classifyIssue($imagePath, $aiDescription, $userLocation = '') {
         There are 6 possible issues: pothole, broken_streetlight, illegal_dumping, flooding, broken_trafficlight, damaged_public_facility.
         There are 4 priority levels, depending on how severe the issue appears in the image: critical, high, medium, low.
 
+        If the issue does not belong to any 6 of the issues mentioned, set issue as "general".
+
         Also provide a confidence score between 0 and 1 representing how certain you are about this classification,
         based on the image clarity, how typical the issue looks, and whether multiple issue types could plausibly apply.
 
         Respond ONLY with valid JSON in this exact format, nothing else:
         {
-        "issue": "pothole" | "broken_streetlight" | "illegal_dumping" | "flooding" | "broken_trafficlight" | "damaged_public_facility",
+        "issue": "pothole" | "broken_streetlight" | "illegal_dumping" | "flooding" | "broken_trafficlight" | "damaged_public_facility" | "general",
         "facility_type": "sidewalk" | "kerb" | "guardrail" | "bus_stop" | "road_sign" | "traffic_mirror" | "public_toilet" | "playground" | "park" | "bench" | "exercise_equipment" | "gazebo" | null,
         "road_type": "federal" | "other" | null,
         "flood_source": "major_waterway" | "local_drain" | null,

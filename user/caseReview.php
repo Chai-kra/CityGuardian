@@ -70,12 +70,105 @@ function displayDate($value) {
 |--------------------------------------------------------------------------
 */
 
-$department = trim(
-    (string)($_SESSION['department'] ?? '')
+$adminUserId = (int)($_SESSION['id'] ?? 0);
+$departmentId = (int)($_SESSION['department_id'] ?? 0);
+$department = trim((string)($_SESSION['department'] ?? ''));
+$departmentCode = '';
+$departmentLegacyName = $department;
+
+$accessScope = 'department';
+$isNationalAdmin = false;
+
+$departmentStatement = $conn->prepare(
+    'SELECT
+        u.department_id,
+        u.access_scope,
+        d.department_code,
+        d.department_name,
+        d.legacy_name
+     FROM users u
+     LEFT JOIN departments d
+       ON d.department_id = u.department_id
+      AND d.is_active = 1
+     WHERE u.id = ?
+     LIMIT 1'
 );
 
-if ($department === '') {
-    exit('Your admin account has no department assigned.');
+if (!$departmentStatement) {
+    exit('Unable to resolve your account.');
+}
+
+$departmentStatement->bind_param('i', $adminUserId);
+$departmentStatement->execute();
+
+$departmentResult = $departmentStatement->get_result();
+$departmentRow = $departmentResult->fetch_assoc() ?: null;
+
+$departmentStatement->close();
+
+if ($departmentRow) {
+    $accessScope = strtolower(
+        trim((string)($departmentRow['access_scope'] ?? 'department'))
+    );
+
+    $isNationalAdmin = $accessScope === 'national';
+}
+
+if ($departmentRow && !empty($departmentRow['department_id'])) {
+    $departmentId = (int)$departmentRow['department_id'];
+}
+
+if (!$isNationalAdmin && $departmentId <= 0 && $department !== '') {
+    $lookupStatement = $conn->prepare(
+        'SELECT department_id, department_code, department_name, legacy_name
+         FROM departments
+         WHERE department_code = ?
+            OR department_name = ?
+            OR legacy_name = ?
+         LIMIT 1'
+    );
+
+    if ($lookupStatement) {
+        $lookupStatement->bind_param(
+            'sss',
+            $department,
+            $department,
+            $department
+        );
+
+        $lookupStatement->execute();
+
+        $lookupResult = $lookupStatement->get_result();
+        $departmentRow = $lookupResult->fetch_assoc() ?: null;
+
+        $lookupStatement->close();
+
+        if ($departmentRow) {
+            $departmentId = (int)$departmentRow['department_id'];
+        }
+    }
+}
+
+if (!$isNationalAdmin && ($departmentId <= 0 || !$departmentRow)) {
+    exit('Your admin account has no valid department assigned.');
+}
+
+if ($isNationalAdmin) {
+    $departmentCode = 'NATIONAL';
+    $department = 'Malaysia-wide Administration';
+    $departmentLegacyName = '';
+} else {
+    $departmentCode = trim(
+        (string)($departmentRow['department_code'] ?? '')
+    );
+
+    $department = trim(
+        (string)($departmentRow['department_name'] ?? $department)
+    );
+
+    $departmentLegacyName = trim(
+        (string)($departmentRow['legacy_name'] ?? $department)
+    );
 }
 
 $adminName = trim(
@@ -112,6 +205,14 @@ $priority = strtolower(
 $selectedDate = (string)(
     $_GET['date'] ?? ''
 );
+
+$selectedBranchId = (int)(
+    $_GET['branch_id'] ?? 0
+);
+
+if ($selectedBranchId < 0) {
+    $selectedBranchId = 0;
+}
 
 $openSection = strtolower(
     trim((string)($_GET['open'] ?? 'action'))
@@ -154,30 +255,136 @@ if (!in_array(
 
 /*
 |--------------------------------------------------------------------------
+| LOAD BRANCHES FOR THIS DEPARTMENT
+|--------------------------------------------------------------------------
+|
+| A department admin can only choose branches linked to the department.
+| The selected branch ID is validated against this list before reports load.
+|
+*/
+
+$branchSql = $isNationalAdmin
+    ? 'SELECT
+            b.branch_id,
+            b.branch_code,
+            b.branch_name,
+            b.state_name,
+            b.district_name
+       FROM branches b
+       WHERE b.is_active = 1
+       ORDER BY b.state_name, b.district_name, b.branch_name'
+    : 'SELECT
+            b.branch_id,
+            b.branch_code,
+            b.branch_name,
+            b.state_name,
+            b.district_name
+       FROM branches b
+       JOIN branch_departments bd
+         ON bd.branch_id = b.branch_id
+        AND bd.department_id = ?
+        AND bd.is_active = 1
+       WHERE b.is_active = 1
+       ORDER BY b.state_name, b.district_name, b.branch_name';
+
+$branchStatement = $conn->prepare($branchSql);
+
+if (!$branchStatement) {
+    exit('Unable to load branches.');
+}
+
+if (!$isNationalAdmin) {
+    $branchStatement->bind_param('i', $departmentId);
+}
+
+$branchStatement->execute();
+$branchResult = $branchStatement->get_result();
+$branches = [];
+$allowedBranchIds = [];
+
+while ($branch = $branchResult->fetch_assoc()) {
+    $branch['branch_id'] = (int)$branch['branch_id'];
+    $branches[] = $branch;
+    $allowedBranchIds[$branch['branch_id']] = true;
+}
+
+$branchStatement->close();
+
+if (
+    $selectedBranchId > 0 &&
+    !isset($allowedBranchIds[$selectedBranchId])
+) {
+    $selectedBranchId = 0;
+}
+
+/*
+|--------------------------------------------------------------------------
 | LOAD REPORTS
 |--------------------------------------------------------------------------
 |
 | IMPORTANT:
-| We still retrieve every individual submission.
-| They are grouped later using case_group_id.
+| The normalized assigned_department_id is authoritative. The legacy text
+| fallback only keeps older reports visible until all old records are
+| migrated; it cannot grant access to another department.
 |
 */
 
-$statement = $conn->prepare(
-    'SELECT *
-     FROM reports
-     WHERE ai_department = ?
-     ORDER BY created_at DESC, report_id DESC'
-);
+$reportSql = $isNationalAdmin
+    ? 'SELECT
+            r.*,
+            b.branch_code,
+            b.branch_name,
+            b.state_name AS branch_state,
+            b.district_name AS branch_district
+       FROM reports r
+       LEFT JOIN branches b
+         ON b.branch_id = r.assigned_branch_id
+       WHERE 1 = 1'
+    : 'SELECT
+            r.*,
+            b.branch_code,
+            b.branch_name,
+            b.state_name AS branch_state,
+            b.district_name AS branch_district
+       FROM reports r
+       LEFT JOIN branches b
+         ON b.branch_id = r.assigned_branch_id
+       WHERE (
+            r.assigned_department_id = ?
+            OR (
+                r.assigned_department_id IS NULL
+                AND LOWER(r.ai_department) = LOWER(?)
+            )
+       )';
+
+if ($selectedBranchId > 0) {
+    $reportSql .= ' AND r.assigned_branch_id = ?';
+}
+
+$reportSql .= ' ORDER BY r.created_at DESC, r.report_id DESC';
+
+$statement = $conn->prepare($reportSql);
 
 if (!$statement) {
     exit('Unable to load reports.');
 }
 
-$statement->bind_param(
-    's',
-    $department
-);
+if ($isNationalAdmin && $selectedBranchId > 0) {
+    $statement->bind_param('i', $selectedBranchId);
+} elseif (!$isNationalAdmin && $selectedBranchId > 0) {
+    $statement->bind_param(
+        'isi',
+        $departmentId,
+        $departmentLegacyName,
+        $selectedBranchId
+    );
+} elseif (!$isNationalAdmin) {
+    $statement->bind_param(
+        'is',
+        $departmentId,
+        $departmentLegacyName
+    );
+}
 
 $statement->execute();
 
@@ -380,7 +587,8 @@ $summary = [
 $hasFilters =
     $search !== '' ||
     $priority !== '' ||
-    $selectedDate !== '';
+    $selectedDate !== '' ||
+    $selectedBranchId > 0;
 
 /*
 |--------------------------------------------------------------------------
@@ -459,6 +667,10 @@ foreach ($cases as $case) {
             'location' =>
                 $report['location'] ??
                 'Location unavailable',
+
+            'branch' =>
+                $report['branch_name'] ??
+                'Branch not assigned',
 
             'submissions' =>
                 count($case['submissions'])
@@ -1279,6 +1491,16 @@ select:focus-visible {
     font-size: 11px;
 }
 
+.department-scope {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #7180a9;
+
+    font-size: 8px;
+}
+
 /* MAP */
 
 .map-panel {
@@ -1634,6 +1856,31 @@ select:focus-visible {
     flex: 0 0 auto;
 
     color: var(--blue-light);
+
+    font-size: 13px;
+}
+
+.case-branch {
+    display: flex;
+
+    min-height: 25px;
+
+    align-items: flex-start;
+    gap: 5px;
+
+    margin-top: 6px;
+
+    color: #9eb7f1;
+
+    font-size: 8px;
+
+    line-height: 1.5;
+}
+
+.case-branch i {
+    flex: 0 0 auto;
+
+    color: var(--green);
 
     font-size: 13px;
 }
@@ -2414,6 +2661,36 @@ select:focus-visible {
     </div>
 
     <select
+        class="filter-select branch-filter"
+        name="branch_id"
+        aria-label="Filter by branch"
+    >
+
+        <option value="0">
+            All branches
+        </option>
+
+        <?php foreach ($branches as $branch): ?>
+
+            <option
+                value="<?php echo (int)$branch['branch_id']; ?>"
+                <?php echo
+                    $selectedBranchId === (int)$branch['branch_id']
+                    ? 'selected'
+                    : '';
+                ?>
+            >
+                <?php echo e($branch['branch_name']); ?>
+                <?php if (!empty($branch['district_name'])): ?>
+                    — <?php echo e($branch['district_name']); ?>
+                <?php endif; ?>
+            </option>
+
+        <?php endforeach; ?>
+
+    </select>
+
+    <select
         class="filter-select"
         name="priority"
         aria-label="Filter by priority"
@@ -2595,6 +2872,12 @@ select:focus-visible {
         <strong>
             <?php echo e($department); ?>
         </strong>
+
+        <small class="department-scope">
+            <?php echo count($branches); ?>
+            eligible branch<?php echo count($branches) === 1 ? '' : 'es'; ?>
+            available for this department
+        </small>
 
     </div>
 
@@ -2789,6 +3072,29 @@ select:focus-visible {
                                 )
                             );
 
+                        $displayBranch = trim(
+                            (string)(
+                                $report['branch_name']
+                                ?? ''
+                            )
+                        );
+
+                        if ($displayBranch === '') {
+                            $displayBranch = 'Branch not assigned';
+                        }
+
+                        $branchDistrict = trim(
+                            (string)(
+                                $report['branch_district']
+                                ?? ''
+                            )
+                        );
+
+                        if ($branchDistrict !== '' &&
+                            $displayBranch !== 'Branch not assigned') {
+                            $displayBranch .= ' · ' . $branchDistrict;
+                        }
+
                         $submissionCount =
                             count(
                                 $case['submissions']
@@ -2830,6 +3136,10 @@ select:focus-visible {
                                 'description' =>
                                     $submission['ai_description']
                                     ?? '',
+
+                                'branch' =>
+                                    $submission['branch_name']
+                                    ?? 'Branch not assigned',
 
                                 'date' =>
                                     displayDate(
@@ -2898,6 +3208,16 @@ select:focus-visible {
                                             $report['location']
                                             ?: 'Location not provided'
                                         ); ?>
+                                    </span>
+
+                                </p>
+
+                                <p class="case-branch">
+
+                                    <i class="bx bx-git-branch"></i>
+
+                                    <span>
+                                        <?php echo e($displayBranch); ?>
                                     </span>
 
                                 </p>
@@ -3449,6 +3769,14 @@ function openCaseModal(
                         ${escapeHtml(submission.location)}
                     </span>
 
+                    <span>
+                        Branch:
+                        ${escapeHtml(
+                            submission.branch ||
+                            'Branch not assigned'
+                        )}
+                    </span>
+
                     <p>
                         ${escapeHtml(
                             submission.description ||
@@ -3784,6 +4112,16 @@ mapReports.forEach(
 
             <small>
                 ${escapeHtml(report.location)}
+            </small>
+
+            <br>
+
+            <small>
+                Branch:
+                ${escapeHtml(
+                    report.branch ||
+                    'Branch not assigned'
+                )}
             </small>
 
             <br>

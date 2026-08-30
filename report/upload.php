@@ -14,6 +14,22 @@ require_once __DIR__ . "/department_mapping.php";
 
 function stopRequest($message, $statusCode = 400)
 {
+    global $conn, $imagePath;
+
+    /* Roll back any case/report work and remove a file uploaded in this request. */
+    if (isset($conn) && $conn instanceof mysqli) {
+        @$conn->rollback();
+    }
+
+    if (
+        isset($imagePath) &&
+        is_string($imagePath) &&
+        $imagePath !== "" &&
+        file_exists($imagePath)
+    ) {
+        @unlink($imagePath);
+    }
+
     http_response_code($statusCode);
     exit($message);
 }
@@ -47,6 +63,9 @@ function distanceInMeters($lat1, $lon1, $lat2, $lon2)
         * cos(deg2rad($lat2))
         * sin($dLon / 2)
         * sin($dLon / 2);
+
+    /* Protect the square root from tiny floating-point overshoots. */
+    $a = max(0, min(1, $a));
 
     $c = 2 * atan2(
         sqrt($a),
@@ -91,6 +110,21 @@ $latitude = isset($_POST["latitude"]) && is_numeric($_POST["latitude"])
 $longitude = isset($_POST["longitude"]) && is_numeric($_POST["longitude"])
     ? (float) $_POST["longitude"]
     : null;
+
+if ($latitude === null || $longitude === null) {
+    stopRequest(
+        "Please select the report location on the map or use your current location."
+    );
+}
+
+if (
+    $latitude < -90 ||
+    $latitude > 90 ||
+    $longitude < -180 ||
+    $longitude > 180
+) {
+    stopRequest("The selected location coordinates are invalid.");
+}
 
 
 /*
@@ -217,6 +251,14 @@ $aiDepartment = "DBKL Engineering Department";
 
 $aiConfidence = null;
 
+$aiDepartmentId = null;
+
+$assignedDepartmentId = null;
+
+$assignedBranchId = null;
+
+$assignmentDistanceKm = null;
+
 $status = "Pending";
 
 
@@ -327,6 +369,200 @@ if ($imageName !== "") {
             json_encode($result)
         );
     }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Normalize the AI department and assign the nearest eligible branch
+|--------------------------------------------------------------------------
+|
+| The legacy text field is kept for compatibility, but the routing source
+| of truth is the normalized department/branch ID pair. A report cannot be
+| routed accurately without coordinates, so location coordinates are
+| required before this point.
+|
+|--------------------------------------------------------------------------
+*/
+
+$departmentLookupName1 = trim((string) $aiDepartment);
+$departmentLookupName2 = $departmentLookupName1;
+$departmentLookupName3 = $departmentLookupName1;
+
+$departmentSql = '
+    SELECT
+        department_id,
+        department_code,
+        department_name,
+        legacy_name
+    FROM departments
+    WHERE is_active = 1
+      AND (
+          BINARY LOWER(CONVERT(department_code USING utf8mb4)) =
+              BINARY LOWER(CONVERT(? USING utf8mb4))
+          OR BINARY LOWER(CONVERT(department_name USING utf8mb4)) =
+              BINARY LOWER(CONVERT(? USING utf8mb4))
+          OR BINARY LOWER(CONVERT(legacy_name USING utf8mb4)) =
+              BINARY LOWER(CONVERT(? USING utf8mb4))
+      )
+    LIMIT 1
+';
+
+$departmentStmt = $conn->prepare($departmentSql);
+
+if (!$departmentStmt) {
+    stopRequest(
+        "Routing database is not ready. Please run the CityGuardian routing migration.",
+        500
+    );
+}
+
+$departmentStmt->bind_param(
+    "sss",
+    $departmentLookupName1,
+    $departmentLookupName2,
+    $departmentLookupName3
+);
+
+if (!$departmentStmt->execute()) {
+    $error = $departmentStmt->error;
+    $departmentStmt->close();
+
+    stopRequest(
+        "Database error while resolving the AI department: " . $error,
+        500
+    );
+}
+
+$departmentResult = $departmentStmt->get_result();
+$departmentRow = $departmentResult->fetch_assoc() ?: null;
+$departmentStmt->close();
+
+if (!$departmentRow) {
+    stopRequest(
+        "The AI department could not be matched to an active department.",
+        500
+    );
+}
+
+$aiDepartmentId = (int) $departmentRow["department_id"];
+$assignedDepartmentId = $aiDepartmentId;
+$departmentCode = trim((string) $departmentRow["department_code"]);
+
+/* Keep the old text column synchronized with the normalized department. */
+$aiDepartment = trim((string) ($departmentRow["legacy_name"] ?? ""));
+
+if ($aiDepartment === "") {
+    $aiDepartment = trim((string) $departmentRow["department_name"]);
+}
+
+$branchSql = '
+    SELECT
+        b.branch_id,
+        b.branch_code,
+        b.branch_name,
+        b.branch_level,
+        b.latitude,
+        b.longitude
+    FROM branches b
+    JOIN branch_departments bd
+      ON bd.branch_id = b.branch_id
+     AND bd.department_id = ?
+     AND bd.is_active = 1
+    WHERE b.is_active = 1
+    ORDER BY b.branch_id ASC
+';
+
+$branchStmt = $conn->prepare($branchSql);
+
+if (!$branchStmt) {
+    stopRequest(
+        "Routing branches are not ready. Please run the CityGuardian routing migration.",
+        500
+    );
+}
+
+$branchStmt->bind_param("i", $assignedDepartmentId);
+
+if (!$branchStmt->execute()) {
+    $error = $branchStmt->error;
+    $branchStmt->close();
+
+    stopRequest(
+        "Database error while finding the nearest branch: " . $error,
+        500
+    );
+}
+
+$branchResult = $branchStmt->get_result();
+$nearestBranch = null;
+$nearestDistanceMeters = null;
+$nearestBranchRank = PHP_INT_MAX;
+
+while ($branch = $branchResult->fetch_assoc()) {
+
+    if (
+        !is_numeric($branch["latitude"]) ||
+        !is_numeric($branch["longitude"])
+    ) {
+        continue;
+    }
+
+    $distanceMeters = distanceInMeters(
+        $latitude,
+        $longitude,
+        (float) $branch["latitude"],
+        (float) $branch["longitude"]
+    );
+
+    $branchRankMap = [
+        "district_branch" => 1,
+        "local_branch" => 2,
+        "state_hq" => 3,
+        "national_hq" => 4
+    ];
+
+    $branchRank =
+        $branchRankMap[$branch["branch_level"] ?? ""]
+        ?? 5;
+
+    $isCloser =
+        $nearestDistanceMeters === null ||
+        $distanceMeters < $nearestDistanceMeters - 0.001;
+
+    $isEquivalentButPreferred =
+        $nearestDistanceMeters !== null &&
+        abs($distanceMeters - $nearestDistanceMeters) <= 0.001 &&
+        $branchRank < $nearestBranchRank;
+
+    if ($isCloser || $isEquivalentButPreferred) {
+        $nearestBranch = $branch;
+        $nearestDistanceMeters = $distanceMeters;
+        $nearestBranchRank = $branchRank;
+    }
+}
+
+$branchStmt->close();
+
+if ($nearestBranch === null || $nearestDistanceMeters === null) {
+    stopRequest(
+        "No active branch serves the selected AI department.",
+        500
+    );
+}
+
+$assignedBranchId = (int) $nearestBranch["branch_id"];
+$assignmentDistanceKm = round(
+    $nearestDistanceMeters / 1000,
+    3
+);
+
+/* Keep the case update and report/assignment history atomic. */
+if (!$conn->begin_transaction()) {
+    stopRequest(
+        "Unable to start the report transaction.",
+        500
+    );
 }
 
 
@@ -683,9 +919,14 @@ $sql = "
         ai_confidence,
         status,
         latitude,
-        longitude
+        longitude,
+        ai_department_id,
+        assigned_department_id,
+        assigned_branch_id,
+        assignment_distance_km,
+        assigned_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
 ";
 
 $stmt = $conn->prepare($sql);
@@ -714,7 +955,7 @@ if (!$stmt) {
 */
 
 $stmt->bind_param(
-    "iisssssssssdd",
+    "iisssssssssddiiid",
     $userId,
     $caseGroupId,
     $issue,
@@ -727,7 +968,11 @@ $stmt->bind_param(
     $aiConfidence,
     $status,
     $latitude,
-    $longitude
+    $longitude,
+    $aiDepartmentId,
+    $assignedDepartmentId,
+    $assignedBranchId,
+    $assignmentDistanceKm
 );
 
 
@@ -753,14 +998,83 @@ if (!$stmt->execute()) {
     );
 }
 
+$reportId = (int) $conn->insert_id;
+$stmt->close();
+
+
+/*
+|--------------------------------------------------------------------------
+| Save the assignment history
+|--------------------------------------------------------------------------
+|
+| This keeps an auditable record of which department/branch received the
+| report and the distance used for the nearest-branch decision.
+|
+|--------------------------------------------------------------------------
+*/
+
+$historySql = "
+    INSERT INTO report_assignment_history (
+        report_id,
+        department_id,
+        branch_id,
+        distance_km,
+        assignment_method,
+        assignment_note
+    )
+    VALUES (?, ?, ?, ?, ?, ?)
+";
+
+$historyStmt = $conn->prepare($historySql);
+
+if (!$historyStmt) {
+    stopRequest(
+        "Database error while saving branch assignment history: " .
+        $conn->error,
+        500
+    );
+}
+
+$assignmentMethod = "AI_NEAREST_BRANCH";
+$assignmentNote =
+    "Nearest active branch selected from the submitted GPS coordinates.";
+
+$historyStmt->bind_param(
+    "iiidss",
+    $reportId,
+    $assignedDepartmentId,
+    $assignedBranchId,
+    $assignmentDistanceKm,
+    $assignmentMethod,
+    $assignmentNote
+);
+
+if (!$historyStmt->execute()) {
+    $error = $historyStmt->error;
+    $historyStmt->close();
+
+    stopRequest(
+        "Database error while saving branch assignment history: " .
+        $error,
+        500
+    );
+}
+
+$historyStmt->close();
+
+if (!$conn->commit()) {
+    stopRequest(
+        "Unable to complete the report transaction.",
+        500
+    );
+}
+
 
 /*
 |--------------------------------------------------------------------------
 | Finish
 |--------------------------------------------------------------------------
 */
-
-$stmt->close();
 
 $conn->close();
 

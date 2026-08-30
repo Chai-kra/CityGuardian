@@ -673,7 +673,7 @@ $filtersActive = $search !== '' || $statusFilter !== '' || $priorityFilter !== '
 
                             <div class="card-body">
                                 <div class="card-kicker">
-                                    <span>Case #<?php echo $reportId; ?></span>
+                                    <span>Report #<?php echo $reportId; ?></span>
                                     <span class="priority <?php echo e($priorityClass); ?>"><?php echo e($priorityLabel); ?></span>
                                 </div>
 
