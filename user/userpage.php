@@ -576,7 +576,7 @@ $filtersActive = $search !== '' || $statusFilter !== '' || $priorityFilter !== '
 
                 <a class="summary-card action<?php echo $statusFilter === 'action' ? ' active' : ''; ?>" href="userpage.php?status=action">
                     <span class="summary-icon"><i class="bx bx-error-circle"></i></span>
-                    <span class="summary-copy"><strong><?php echo $summary['action']; ?></strong><span>Action needed</span></span>
+                    <span class="summary-copy"><strong><?php echo $summary['action']; ?></strong><span>To Investigate</span></span>
                 </a>
 
                 <a class="summary-card underway<?php echo $statusFilter === 'underway' ? ' active' : ''; ?>" href="userpage.php?status=underway">
