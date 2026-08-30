@@ -39,6 +39,18 @@ function formatIssueType($issueType) {
     return ucwords(str_replace('_', ' ', (string)$issueType));
 }
 
+function distanceInMeters($lat1, $lon1, $lat2, $lon2) {
+    $earthRadius = 6371000;
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLon = deg2rad($lon2 - $lon1);
+    $a = sin($dLat / 2) * sin($dLat / 2)
+        + cos(deg2rad($lat1))
+        * cos(deg2rad($lat2))
+        * sin($dLon / 2) * sin($dLon / 2);
+    $a = max(0, min(1, $a));
+    return $earthRadius * 2 * atan2(sqrt($a), sqrt(1 - $a));
+}
+
 if (!isset($_GET['id']) || !ctype_digit((string)$_GET['id'])) {
     http_response_code(400);
     exit('Invalid report ID.');
@@ -47,31 +59,130 @@ if (!isset($_GET['id']) || !ctype_digit((string)$_GET['id'])) {
 $reportId = (int)$_GET['id'];
 $userId = (int)$_SESSION['id'];
 $isAdmin = ($_SESSION['role'] ?? '') === 'admin';
+$adminDepartmentId = (int)($_SESSION['department_id'] ?? 0);
 $adminDepartment = trim((string)($_SESSION['department'] ?? ''));
+$adminDepartmentLegacy = $adminDepartment;
+$accessScope = 'department';
+$isNationalAdmin = false;
 $formError = '';
 $feedbackValue = '';
+$assignmentError = '';
+$assignmentNoteValue = '';
+$assignmentDepartmentValue = 0;
+$assignmentBranchValue = 0;
+$assignmentSubmitted = false;
 
 if (empty($_SESSION['report_csrf_token'])) {
     $_SESSION['report_csrf_token'] = bin2hex(random_bytes(32));
 }
 
+$adminStatement = null;
+
 if ($isAdmin) {
-    $sql = 'SELECT * FROM reports WHERE report_id = ? AND ai_department = ?';
-    $statement = $conn->prepare($sql);
+    $adminStatement = $conn->prepare(
+        'SELECT
+            u.department_id,
+            u.department,
+            u.access_scope,
+            d.department_name,
+            d.legacy_name
+         FROM users u
+         LEFT JOIN departments d
+           ON d.department_id = u.department_id
+          AND d.is_active = 1
+         WHERE u.id = ?
+         LIMIT 1'
+    );
 
-    if (!$statement) {
-        exit('Unable to load this report.');
+    if (!$adminStatement) {
+        exit('Unable to resolve your administrator account.');
     }
 
-    $statement->bind_param('is', $reportId, $adminDepartment);
+    $adminStatement->bind_param('i', $userId);
+    $adminStatement->execute();
+    $adminResult = $adminStatement->get_result();
+    $adminRow = $adminResult->fetch_assoc() ?: null;
+    $adminStatement->close();
+
+    if ($adminRow) {
+        $accessScope = strtolower(
+            trim((string)($adminRow['access_scope'] ?? 'department'))
+        );
+        $isNationalAdmin = $accessScope === 'national';
+
+        if (!empty($adminRow['department_id'])) {
+            $adminDepartmentId = (int)$adminRow['department_id'];
+        }
+
+        $adminDepartment = trim(
+            (string)($adminRow['department_name'] ?? $adminDepartment)
+        );
+        $adminDepartmentLegacy = trim(
+            (string)($adminRow['legacy_name'] ?? $adminDepartmentLegacy)
+        );
+    }
+}
+
+if ($isAdmin && !$isNationalAdmin && $adminDepartmentLegacy === '') {
+    $adminDepartmentLegacy = $adminDepartment;
+}
+
+$sql = 'SELECT
+            r.*,
+            assigned_d.department_code AS assigned_department_code,
+            assigned_d.department_name AS assigned_department_name,
+            assigned_d.legacy_name AS assigned_department_legacy_name,
+            b.branch_code AS assigned_branch_code,
+            b.branch_name AS assigned_branch_name,
+            b.state_name AS assigned_branch_state,
+            b.district_name AS assigned_branch_district,
+            b.latitude AS assigned_branch_latitude,
+            b.longitude AS assigned_branch_longitude
+        FROM reports r
+        LEFT JOIN departments assigned_d
+          ON assigned_d.department_id = r.assigned_department_id
+        LEFT JOIN branches b
+          ON b.branch_id = r.assigned_branch_id
+        WHERE r.report_id = ?';
+
+if ($isAdmin) {
+    if (!$isNationalAdmin) {
+        $sql .= '
+            AND (
+                r.assigned_department_id = ?
+                OR (
+                    r.assigned_department_id IS NULL
+                    AND (
+                        r.ai_department_id = ?
+                        OR (
+                            LOWER(CONVERT(r.ai_department USING utf8mb4)) COLLATE utf8mb4_unicode_ci =
+                            LOWER(CONVERT(? USING utf8mb4)) COLLATE utf8mb4_unicode_ci
+                        )
+                    )
+                )
+            )';
+    }
 } else {
-    $sql = 'SELECT * FROM reports WHERE report_id = ? AND user_id = ?';
-    $statement = $conn->prepare($sql);
+    $sql .= ' AND r.user_id = ?';
+}
 
-    if (!$statement) {
-        exit('Unable to load this report.');
-    }
+$statement = $conn->prepare($sql);
 
+if (!$statement) {
+    exit('Unable to load this report.');
+}
+
+if ($isAdmin && $isNationalAdmin) {
+    $statement->bind_param('i', $reportId);
+} elseif ($isAdmin) {
+    $statement->bind_param(
+        'iiis',
+        $reportId,
+        $adminDepartmentId,
+        $adminDepartmentId,
+        $adminDepartmentLegacy
+    );
+} else {
     $statement->bind_param('ii', $reportId, $userId);
 }
 
@@ -99,75 +210,341 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit('Invalid form token.');
     }
 
-    $newStatus = trim((string)($_POST['status'] ?? ''));
-    $feedbackValue = trim((string)($_POST['feedback'] ?? ''));
-    $allowedStatuses = ['Pending', 'In Progress', 'Resolved'];
-    $oldStatus = (string)($report['status'] ?? 'Pending');
-    $comparableOldStatus = $oldStatus === 'Assigned' ? 'In Progress' : $oldStatus;
+    $postAction = (string)($_POST['action'] ?? 'status_update');
 
-    if (!in_array($newStatus, $allowedStatuses, true)) {
-        $formError = 'Select a valid status.';
-    } elseif ($newStatus === $comparableOldStatus) {
-        $formError = 'Select a different status before sending an update.';
-    } elseif (textLength($feedbackValue) < 5) {
-        $formError = 'Feedback must contain at least 5 characters.';
-    } elseif (textLength($feedbackValue) > 1000) {
-        $formError = 'Feedback cannot exceed 1000 characters.';
+    if ($postAction === 'assign_report') {
+        if (!$isNationalAdmin) {
+            http_response_code(403);
+            exit('Only the national administrator can change report routing.');
+        }
+
+        $assignmentSubmitted = true;
+        $assignmentDepartmentValue = (int)($_POST['assigned_department_id'] ?? 0);
+        $assignmentBranchValue = (int)($_POST['assigned_branch_id'] ?? 0);
+        $assignmentNoteValue = trim((string)($_POST['assignment_note'] ?? ''));
+
+        if ($assignmentDepartmentValue <= 0) {
+            $assignmentError = 'Select a department.';
+        } elseif ($assignmentBranchValue <= 0) {
+            $assignmentError = 'Select a branch.';
+        } elseif (textLength($assignmentNoteValue) > 255) {
+            $assignmentError = 'The assignment note cannot exceed 255 characters.';
+        }
+
+        if ($assignmentError === '') {
+            $transactionStarted = false;
+
+            try {
+                $targetDepartmentStatement = $conn->prepare(
+                    'SELECT department_id, department_name, legacy_name
+                     FROM departments
+                     WHERE department_id = ?
+                       AND is_active = 1
+                     LIMIT 1'
+                );
+
+                if (!$targetDepartmentStatement) {
+                    throw new Exception('Department statement could not be prepared.');
+                }
+
+                $targetDepartmentStatement->bind_param(
+                    'i',
+                    $assignmentDepartmentValue
+                );
+                $targetDepartmentStatement->execute();
+                $targetDepartmentResult = $targetDepartmentStatement->get_result();
+                $targetDepartment = $targetDepartmentResult->fetch_assoc() ?: null;
+                $targetDepartmentStatement->close();
+
+                if (!$targetDepartment) {
+                    throw new Exception('The selected department is not active.');
+                }
+
+                $targetBranchStatement = $conn->prepare(
+                    'SELECT
+                        b.branch_id,
+                        b.branch_name,
+                        b.latitude,
+                        b.longitude
+                     FROM branches b
+                     INNER JOIN branch_departments bd
+                       ON bd.branch_id = b.branch_id
+                      AND bd.department_id = ?
+                      AND bd.is_active = 1
+                     WHERE b.branch_id = ?
+                       AND b.is_active = 1
+                     LIMIT 1'
+                );
+
+                if (!$targetBranchStatement) {
+                    throw new Exception('Branch statement could not be prepared.');
+                }
+
+                $targetBranchStatement->bind_param(
+                    'ii',
+                    $assignmentDepartmentValue,
+                    $assignmentBranchValue
+                );
+                $targetBranchStatement->execute();
+                $targetBranchResult = $targetBranchStatement->get_result();
+                $targetBranch = $targetBranchResult->fetch_assoc() ?: null;
+                $targetBranchStatement->close();
+
+                if (!$targetBranch) {
+                    throw new Exception(
+                        'The selected branch is not active or is not linked to that department.'
+                    );
+                }
+
+                $assignmentDistanceKm = 0.0;
+
+                if (
+                    is_numeric($report['latitude'] ?? null) &&
+                    is_numeric($report['longitude'] ?? null) &&
+                    is_numeric($targetBranch['latitude'] ?? null) &&
+                    is_numeric($targetBranch['longitude'] ?? null)
+                ) {
+                    $assignmentDistanceKm = round(
+                        distanceInMeters(
+                            (float)$report['latitude'],
+                            (float)$report['longitude'],
+                            (float)$targetBranch['latitude'],
+                            (float)$targetBranch['longitude']
+                        ) / 1000,
+                        3
+                    );
+                }
+
+                if ($assignmentNoteValue === '') {
+                    $assignmentNoteValue =
+                        'Manual routing correction by the national administrator.';
+                }
+
+                $conn->begin_transaction();
+                $transactionStarted = true;
+
+                $assignmentUpdateStatement = $conn->prepare(
+                    'UPDATE reports
+                     SET assigned_department_id = ?,
+                         assigned_branch_id = ?,
+                         assignment_distance_km = ?,
+                         assigned_at = NOW()
+                     WHERE report_id = ?'
+                );
+
+                if (!$assignmentUpdateStatement) {
+                    throw new Exception('Assignment statement could not be prepared.');
+                }
+
+                $assignmentUpdateStatement->bind_param(
+                    'iidi',
+                    $assignmentDepartmentValue,
+                    $assignmentBranchValue,
+                    $assignmentDistanceKm,
+                    $reportId
+                );
+
+                if (!$assignmentUpdateStatement->execute()) {
+                    throw new Exception('The report assignment could not be saved.');
+                }
+
+                $assignmentUpdateStatement->close();
+
+                $assignmentHistoryStatement = $conn->prepare(
+                    'INSERT INTO report_assignment_history
+                        (report_id, department_id, branch_id, distance_km,
+                         assignment_method, assignment_note)
+                     VALUES (?, ?, ?, ?, ?, ?)'
+                );
+
+                if (!$assignmentHistoryStatement) {
+                    throw new Exception('Assignment history statement could not be prepared.');
+                }
+
+                $assignmentMethod = 'MANUAL_ADMIN';
+                $assignmentHistoryStatement->bind_param(
+                    'iiidss',
+                    $reportId,
+                    $assignmentDepartmentValue,
+                    $assignmentBranchValue,
+                    $assignmentDistanceKm,
+                    $assignmentMethod,
+                    $assignmentNoteValue
+                );
+
+                if (!$assignmentHistoryStatement->execute()) {
+                    throw new Exception('The assignment history could not be saved.');
+                }
+
+                $assignmentHistoryStatement->close();
+                $conn->commit();
+
+                header('Location: ReportPage.php?id=' . $reportId . '&assigned=1');
+                exit();
+            } catch (Throwable $error) {
+                if ($transactionStarted) {
+                    $conn->rollback();
+                }
+
+                error_log('Report assignment error: ' . $error->getMessage());
+                $assignmentError = 'The department and branch could not be assigned. Please try again.';
+            }
+        }
+    } else {
+        $newStatus = trim((string)($_POST['status'] ?? ''));
+        $feedbackValue = trim((string)($_POST['feedback'] ?? ''));
+        $allowedStatuses = ['Pending', 'In Progress', 'Resolved'];
+        $oldStatus = (string)($report['status'] ?? 'Pending');
+        $comparableOldStatus = $oldStatus === 'Assigned' ? 'In Progress' : $oldStatus;
+
+        if (!in_array($newStatus, $allowedStatuses, true)) {
+            $formError = 'Select a valid status.';
+        } elseif ($newStatus === $comparableOldStatus) {
+            $formError = 'Select a different status before sending an update.';
+        } elseif (textLength($feedbackValue) < 5) {
+            $formError = 'Feedback must contain at least 5 characters.';
+        } elseif (textLength($feedbackValue) > 1000) {
+            $formError = 'Feedback cannot exceed 1000 characters.';
+        }
+
+        if ($formError === '') {
+            $conn->begin_transaction();
+
+            try {
+                if ($isNationalAdmin) {
+                    $updateStatement = $conn->prepare(
+                        'UPDATE reports SET status = ? WHERE report_id = ?'
+                    );
+
+                    if (!$updateStatement) {
+                        throw new Exception('Status statement could not be prepared.');
+                    }
+
+                    $updateStatement->bind_param('si', $newStatus, $reportId);
+                } else {
+                    $updateStatement = $conn->prepare(
+                        'UPDATE reports
+                         SET status = ?
+                         WHERE report_id = ?
+                           AND (
+                               assigned_department_id = ?
+                               OR (
+                                   assigned_department_id IS NULL
+                                   AND (
+                                       ai_department_id = ?
+                                       OR (
+                                           LOWER(CONVERT(ai_department USING utf8mb4)) COLLATE utf8mb4_unicode_ci =
+                                           LOWER(CONVERT(? USING utf8mb4)) COLLATE utf8mb4_unicode_ci
+                                       )
+                                   )
+                               )
+                           )'
+                    );
+
+                    if (!$updateStatement) {
+                        throw new Exception('Status statement could not be prepared.');
+                    }
+
+                    $updateStatement->bind_param(
+                        'siiis',
+                        $newStatus,
+                        $reportId,
+                        $adminDepartmentId,
+                        $adminDepartmentId,
+                        $adminDepartmentLegacy
+                    );
+                }
+
+                if (!$updateStatement->execute() || $updateStatement->affected_rows !== 1) {
+                    throw new Exception('Status could not be updated.');
+                }
+
+                $updateStatement->close();
+
+                $historyStatement = $conn->prepare(
+                    'INSERT INTO report_updates
+                    (report_id, admin_id, old_status, new_status, feedback)
+                    VALUES (?, ?, ?, ?, ?)'
+                );
+
+                if (!$historyStatement) {
+                    throw new Exception('Feedback statement could not be prepared.');
+                }
+
+                $historyStatement->bind_param(
+                    'iisss',
+                    $reportId,
+                    $userId,
+                    $oldStatus,
+                    $newStatus,
+                    $feedbackValue
+                );
+
+                if (!$historyStatement->execute()) {
+                    throw new Exception('Feedback could not be saved.');
+                }
+
+                $historyStatement->close();
+                $conn->commit();
+
+                header('Location: ReportPage.php?id=' . $reportId . '&updated=1');
+                exit();
+            } catch (Throwable $error) {
+                $conn->rollback();
+                error_log('Report update error: ' . $error->getMessage());
+                $formError = 'The status and feedback could not be saved. Please try again.';
+            }
+        }
+    }
+}
+
+$assignmentDepartments = [];
+$assignmentBranches = [];
+
+if ($isNationalAdmin) {
+    $assignmentDepartmentStatement = $conn->prepare(
+        'SELECT department_id, department_code, department_name, legacy_name
+         FROM departments
+         WHERE is_active = 1
+         ORDER BY department_name ASC'
+    );
+
+    if ($assignmentDepartmentStatement) {
+        $assignmentDepartmentStatement->execute();
+        $assignmentDepartmentResult = $assignmentDepartmentStatement->get_result();
+
+        while ($departmentOption = $assignmentDepartmentResult->fetch_assoc()) {
+            $assignmentDepartments[] = $departmentOption;
+        }
+
+        $assignmentDepartmentStatement->close();
     }
 
-    if ($formError === '') {
-        $conn->begin_transaction();
+    $assignmentBranchStatement = $conn->prepare(
+        'SELECT
+            b.branch_id,
+            b.branch_code,
+            b.branch_name,
+            b.state_name,
+            b.district_name,
+            bd.department_id
+         FROM branches b
+         INNER JOIN branch_departments bd
+           ON bd.branch_id = b.branch_id
+          AND bd.is_active = 1
+         WHERE b.is_active = 1
+         ORDER BY b.state_name, b.district_name, b.branch_name'
+    );
 
-        try {
-            $updateStatement = $conn->prepare(
-                'UPDATE reports SET status = ? WHERE report_id = ? AND ai_department = ?'
-            );
+    if ($assignmentBranchStatement) {
+        $assignmentBranchStatement->execute();
+        $assignmentBranchResult = $assignmentBranchStatement->get_result();
 
-            if (!$updateStatement) {
-                throw new Exception('Status statement could not be prepared.');
-            }
-
-            $updateStatement->bind_param('sis', $newStatus, $reportId, $adminDepartment);
-
-            if (!$updateStatement->execute() || $updateStatement->affected_rows !== 1) {
-                throw new Exception('Status could not be updated.');
-            }
-
-            $updateStatement->close();
-
-            $historyStatement = $conn->prepare(
-                'INSERT INTO report_updates
-                (report_id, admin_id, old_status, new_status, feedback)
-                VALUES (?, ?, ?, ?, ?)'
-            );
-
-            if (!$historyStatement) {
-                throw new Exception('Feedback statement could not be prepared.');
-            }
-
-            $historyStatement->bind_param(
-                'iisss',
-                $reportId,
-                $userId,
-                $oldStatus,
-                $newStatus,
-                $feedbackValue
-            );
-
-            if (!$historyStatement->execute()) {
-                throw new Exception('Feedback could not be saved.');
-            }
-
-            $historyStatement->close();
-            $conn->commit();
-
-            header('Location: ReportPage.php?id=' . $reportId . '&updated=1');
-            exit();
-        } catch (Throwable $error) {
-            $conn->rollback();
-            error_log('Report update error: ' . $error->getMessage());
-            $formError = 'The status and feedback could not be saved. Please try again.';
+        while ($branchOption = $assignmentBranchResult->fetch_assoc()) {
+            $assignmentBranches[] = $branchOption;
         }
+
+        $assignmentBranchStatement->close();
     }
 }
 
@@ -215,6 +592,49 @@ $priority = strtolower((string)($report['ai_priority'] ?: 'medium'));
 $allowedPriorityClasses = ['critical', 'high', 'medium', 'low'];
 $priorityClass = in_array($priority, $allowedPriorityClasses, true) ? $priority : 'medium';
 $extraDetails = trim((string)($report['extra_details'] ?? ''));
+
+$aiDepartmentDisplay = trim((string)($report['ai_department'] ?? ''));
+$aiDepartmentDisplay = $aiDepartmentDisplay !== ''
+    ? $aiDepartmentDisplay
+    : 'Not analysed';
+
+$assignedDepartmentDisplay = trim(
+    (string)($report['assigned_department_name'] ?? '')
+);
+
+if ($assignedDepartmentDisplay === '') {
+    $assignedDepartmentDisplay = trim(
+        (string)($report['assigned_department_legacy_name'] ?? '')
+    );
+}
+
+if ($assignedDepartmentDisplay === '') {
+    $assignedDepartmentDisplay = 'Not assigned';
+}
+
+$assignedBranchDisplay = trim(
+    (string)($report['assigned_branch_name'] ?? '')
+);
+
+if ($assignedBranchDisplay !== '') {
+    $branchDistrict = trim((string)($report['assigned_branch_district'] ?? ''));
+
+    if ($branchDistrict !== '') {
+        $assignedBranchDisplay .= ' · ' . $branchDistrict;
+    }
+} else {
+    $assignedBranchDisplay = 'Not assigned';
+}
+
+$currentAssignedDepartmentId = (int)($report['assigned_department_id'] ?? 0);
+$currentAssignedBranchId = (int)($report['assigned_branch_id'] ?? 0);
+
+if (!$assignmentSubmitted) {
+    $assignmentDepartmentValue = $currentAssignedDepartmentId > 0
+        ? $currentAssignedDepartmentId
+        : (int)($report['ai_department_id'] ?? 0);
+    $assignmentBranchValue = $currentAssignedBranchId;
+}
 
 $conn->close();
 ?>
@@ -621,6 +1041,17 @@ $conn->close();
         .feedback-textarea::placeholder { color: #5f6c94; }
         .feedback-textarea:focus { border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(107, 154, 255, .09); }
         .form-error { grid-column: 1 / -1; padding: 10px 12px; border: 1px solid rgba(251, 113, 133, .35); border-radius: 10px; color: #fecdd3; background: rgba(251, 113, 133, .08); font-size: 9px; }
+        .assignment-success { border-color: rgba(107, 154, 255, .38); color: #dbe7ff; background: rgba(51, 117, 245, .11); }
+        .assignment-card { display: grid; gap: 20px; padding: 20px; border: 1px solid rgba(251, 191, 36, .28); border-radius: 15px; background: linear-gradient(135deg, rgba(245, 158, 11, .08), rgba(51, 117, 245, .06)); }
+        .assignment-card .status-copy { max-width: none; }
+        .assignment-card .status-copy > i { color: #fde68a; background: linear-gradient(145deg, #f59e0b, #d97706); }
+        .assignment-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+        .assignment-select { width: 100%; height: 44px; padding: 0 35px 0 12px; border: 1px solid var(--line-strong); border-radius: 11px; outline: 0; color: #fff; background: rgba(8, 15, 53, .68); font-size: 10px; cursor: pointer; }
+        .assignment-select:focus { border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(107, 154, 255, .09); }
+        .assignment-select option { color: #101741; background: #fff; }
+        .assignment-note-field { grid-column: 1 / -1; }
+        .assignment-textarea { min-height: 86px; }
+        .assignment-button { justify-self: start; }
         @media (max-width: 980px) {
             .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .narrative-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
@@ -628,6 +1059,7 @@ $conn->close();
             .status-update-card { align-items: flex-start; flex-direction: column; }
             .status-form { width: 100%; }
             .status-select { flex: 1; }
+            .assignment-form { width: 100%; }
         }
         @media (max-width: 620px) {
             body.report-details-page { padding: 15px 10px; }
@@ -641,6 +1073,9 @@ $conn->close();
             .open-image { right: 18px; bottom: 18px; }
             .status-form { grid-template-columns: 1fr; }
             .status-select, .update-status-button { width: 100%; }
+            .assignment-form { grid-template-columns: 1fr; }
+            .assignment-note-field { grid-column: auto; }
+            .assignment-button { width: 100%; }
             .timeline-top { flex-direction: column; gap: 6px; }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -671,6 +1106,13 @@ $conn->close();
             <div class="success-message" role="status">
                 <i class="bx bx-check-circle"></i>
                 <span>Status updated and feedback sent to the user successfully.</span>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['assigned'])): ?>
+            <div class="success-message assignment-success" role="status">
+                <i class="bx bx-git-branch"></i>
+                <span>The report was manually assigned to the selected department and branch.</span>
             </div>
         <?php endif; ?>
 
@@ -717,7 +1159,17 @@ $conn->close();
 
                 <article class="info-card">
                     <span class="card-label"><i class="bx bx-buildings"></i>Assigned Department</span>
-                    <div class="card-value"><?php echo e($report['ai_department'] ?: 'Not assigned'); ?></div>
+                    <div class="card-value"><?php echo e($assignedDepartmentDisplay); ?></div>
+                </article>
+
+                <article class="info-card">
+                    <span class="card-label"><i class="bx bx-git-branch"></i>Assigned Branch</span>
+                    <div class="card-value"><?php echo e($assignedBranchDisplay); ?></div>
+                </article>
+
+                <article class="info-card">
+                    <span class="card-label"><i class="bx bx-bot"></i>AI Department Suggestion</span>
+                    <div class="card-value"><?php echo e($aiDepartmentDisplay); ?></div>
                 </article>
 
                 <article class="info-card">
@@ -848,6 +1300,93 @@ $conn->close();
             </div>
         </section>
 
+        <?php if ($isNationalAdmin): ?>
+            <section class="content-section" aria-labelledby="assignment-title">
+                <div class="assignment-card">
+                    <div class="status-copy">
+                        <i class="bx bx-git-branch"></i>
+                        <div>
+                            <h2 id="assignment-title">Correct report assignment</h2>
+                            <p>This national-admin control is for reports that were routed to the wrong department or were not routed correctly. Choose a department first, then choose one of its active branches.</p>
+                        </div>
+                    </div>
+
+                    <form class="assignment-form" method="post" action="ReportPage.php?id=<?php echo $reportId; ?>">
+                        <input type="hidden" name="action" value="assign_report">
+                        <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['report_csrf_token']); ?>">
+
+                        <div>
+                            <label class="feedback-label" for="assigned_department_id">Department</label>
+                            <select class="assignment-select" id="assigned_department_id" name="assigned_department_id" required>
+                                <option value="0">Select department</option>
+                                <?php foreach ($assignmentDepartments as $departmentOption): ?>
+                                    <?php
+                                    $optionDepartmentId = (int)$departmentOption['department_id'];
+                                    $optionDepartmentName = trim((string)($departmentOption['department_name'] ?? ''));
+                                    $optionDepartmentCode = trim((string)($departmentOption['department_code'] ?? ''));
+                                    $optionLabel = $optionDepartmentName !== ''
+                                        ? $optionDepartmentName
+                                        : ($departmentOption['legacy_name'] ?? 'Department');
+                                    if ($optionDepartmentCode !== '') {
+                                        $optionLabel .= ' (' . $optionDepartmentCode . ')';
+                                    }
+                                    ?>
+                                    <option value="<?php echo $optionDepartmentId; ?>" <?php echo $assignmentDepartmentValue === $optionDepartmentId ? 'selected' : ''; ?>>
+                                        <?php echo e($optionLabel); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="feedback-label" for="assigned_branch_id">Branch</label>
+                            <select class="assignment-select" id="assigned_branch_id" name="assigned_branch_id" required>
+                                <option value="0" data-department-id="0">Select branch</option>
+                                <?php foreach ($assignmentBranches as $branchOption): ?>
+                                    <?php
+                                    $optionBranchId = (int)$branchOption['branch_id'];
+                                    $optionBranchDepartmentId = (int)$branchOption['department_id'];
+                                    $optionBranchName = trim((string)($branchOption['branch_name'] ?? ''));
+                                    $optionBranchDistrict = trim((string)($branchOption['district_name'] ?? ''));
+                                    $optionBranchLabel = $optionBranchName !== ''
+                                        ? $optionBranchName
+                                        : 'Branch #' . $optionBranchId;
+                                    if ($optionBranchDistrict !== '') {
+                                        $optionBranchLabel .= ' · ' . $optionBranchDistrict;
+                                    }
+                                    ?>
+                                    <option value="<?php echo $optionBranchId; ?>" data-department-id="<?php echo $optionBranchDepartmentId; ?>" <?php echo $assignmentBranchValue === $optionBranchId ? 'selected' : ''; ?>>
+                                        <?php echo e($optionBranchLabel); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="assignment-note-field">
+                            <label class="feedback-label" for="assignment_note">
+                                Reason / note
+                                <span>Optional · max 255 characters</span>
+                            </label>
+                            <textarea class="feedback-textarea assignment-textarea"
+                                      id="assignment_note"
+                                      name="assignment_note"
+                                      maxlength="255"
+                                      placeholder="Example: Location is in Wangsa Maju, so the report was corrected to Wangsa Maju branch."><?php echo e($assignmentNoteValue); ?></textarea>
+                        </div>
+
+                        <?php if ($assignmentError !== ''): ?>
+                            <p class="form-error" role="alert"><?php echo e($assignmentError); ?></p>
+                        <?php endif; ?>
+
+                        <button class="update-status-button assignment-button" type="submit">
+                            <i class="bx bx-git-branch"></i>
+                            Save assignment
+                        </button>
+                    </form>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <?php if ($isAdmin): ?>
             <section class="content-section" aria-labelledby="status-title">
                 <div class="status-update-card">
@@ -860,6 +1399,7 @@ $conn->close();
                     </div>
 
                     <form class="status-form" method="post" action="ReportPage.php?id=<?php echo $reportId; ?>">
+                        <input type="hidden" name="action" value="status_update">
                         <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['report_csrf_token']); ?>">
 
                         <div>
@@ -902,5 +1442,45 @@ $conn->close();
             &copy; <?php echo date('Y'); ?> AI City Guardian. Case information is visible only to authorized users.
         </footer>
     </main>
+    <?php if ($isNationalAdmin): ?>
+        <script>
+            (() => {
+                const departmentSelect = document.getElementById('assigned_department_id');
+                const branchSelect = document.getElementById('assigned_branch_id');
+
+                if (!departmentSelect || !branchSelect) {
+                    return;
+                }
+
+                const syncBranches = () => {
+                    const departmentId = departmentSelect.value;
+                    let selectedBranchIsVisible = false;
+
+                    Array.from(branchSelect.options).forEach((option) => {
+                        if (option.value === '0') {
+                            option.hidden = false;
+                            option.disabled = false;
+                            return;
+                        }
+
+                        const belongsToDepartment = option.dataset.departmentId === departmentId;
+                        option.hidden = !belongsToDepartment;
+                        option.disabled = !belongsToDepartment;
+
+                        if (belongsToDepartment && option.selected) {
+                            selectedBranchIsVisible = true;
+                        }
+                    });
+
+                    if (!selectedBranchIsVisible) {
+                        branchSelect.value = '0';
+                    }
+                };
+
+                departmentSelect.addEventListener('change', syncBranches);
+                syncBranches();
+            })();
+        </script>
+    <?php endif; ?>
 </body>
 </html>

@@ -65,18 +65,52 @@ if ($reportId <= 0) {
 |--------------------------------------------------------------------------
 */
 
-$department = trim(
-    (string)(
-        $_SESSION['department'] ?? ''
-    )
+$adminUserId = (int)($_SESSION['id'] ?? 0);
+$departmentId = (int)($_SESSION['department_id'] ?? 0);
+$department = trim((string)($_SESSION['department'] ?? ''));
+$departmentLegacy = $department;
+$accessScope = 'department';
+$isNationalAdmin = false;
+
+$adminStmt = $conn->prepare(
+    'SELECT
+        u.department_id,
+        u.department,
+        u.access_scope,
+        d.department_name,
+        d.legacy_name
+     FROM users u
+     LEFT JOIN departments d
+       ON d.department_id = u.department_id
+      AND d.is_active = 1
+     WHERE u.id = ?
+     LIMIT 1'
 );
 
-if ($department === '') {
-    response(
-        false,
-        'Your admin account has no department assigned.',
-        400
-    );
+if (!$adminStmt) {
+    response(false, 'Database error.', 500);
+}
+
+$adminStmt->bind_param('i', $adminUserId);
+$adminStmt->execute();
+$adminResult = $adminStmt->get_result();
+$adminRow = $adminResult->fetch_assoc() ?: null;
+$adminStmt->close();
+
+if ($adminRow) {
+    $accessScope = strtolower(trim((string)($adminRow['access_scope'] ?? 'department')));
+    $isNationalAdmin = $accessScope === 'national';
+
+    if (!empty($adminRow['department_id'])) {
+        $departmentId = (int)$adminRow['department_id'];
+    }
+
+    $department = trim((string)($adminRow['department_name'] ?? $department));
+    $departmentLegacy = trim((string)($adminRow['legacy_name'] ?? $departmentLegacy));
+}
+
+if ($departmentLegacy === '') {
+    $departmentLegacy = $department;
 }
 
 
@@ -94,7 +128,9 @@ $stmt = $conn->prepare(
     'SELECT
         report_id,
         case_group_id,
-        ai_department
+        ai_department,
+        ai_department_id,
+        assigned_department_id
      FROM reports
      WHERE report_id = ?
      LIMIT 1'
@@ -131,15 +167,26 @@ if (!$report) {
     );
 }
 
-if (
-    (string)$report['ai_department']
-    !== $department
-) {
-    response(
-        false,
-        'You cannot modify a report assigned to another department.',
-        403
-    );
+if (!$isNationalAdmin) {
+    $reportDepartmentId = (int)($report['assigned_department_id'] ?? 0);
+    $reportAiDepartmentId = (int)($report['ai_department_id'] ?? 0);
+    $matchesDepartment = $reportDepartmentId === $departmentId
+        || (
+            $reportDepartmentId === 0
+            && (
+                $reportAiDepartmentId === $departmentId
+                || strtolower(trim((string)$report['ai_department']))
+                    === strtolower(trim($departmentLegacy))
+            )
+        );
+
+    if (!$matchesDepartment) {
+        response(
+            false,
+            'You cannot modify a report assigned to another department.',
+            403
+        );
+    }
 }
 
 
@@ -244,12 +291,28 @@ $newCaseId = $reportId;
 |--------------------------------------------------------------------------
 */
 
-$updateStmt = $conn->prepare(
-    'UPDATE reports
-     SET case_group_id = ?
-     WHERE report_id = ?
-       AND ai_department = ?'
-);
+$updateSql = $isNationalAdmin
+    ? 'UPDATE reports
+       SET case_group_id = ?
+       WHERE report_id = ?'
+    : 'UPDATE reports
+       SET case_group_id = ?
+       WHERE report_id = ?
+         AND (
+             assigned_department_id = ?
+             OR (
+                 assigned_department_id IS NULL
+                 AND (
+                     ai_department_id = ?
+                     OR (
+                         LOWER(CONVERT(ai_department USING utf8mb4)) COLLATE utf8mb4_unicode_ci =
+                         LOWER(CONVERT(? USING utf8mb4)) COLLATE utf8mb4_unicode_ci
+                     )
+                 )
+             )
+         )';
+
+$updateStmt = $conn->prepare($updateSql);
 
 if (!$updateStmt) {
     response(
@@ -259,12 +322,18 @@ if (!$updateStmt) {
     );
 }
 
-$updateStmt->bind_param(
-    'iis',
-    $newCaseId,
-    $reportId,
-    $department
-);
+if ($isNationalAdmin) {
+    $updateStmt->bind_param('ii', $newCaseId, $reportId);
+} else {
+    $updateStmt->bind_param(
+        'iiiis',
+        $newCaseId,
+        $reportId,
+        $departmentId,
+        $departmentId,
+        $departmentLegacy
+    );
+}
 
 if (!$updateStmt->execute()) {
 

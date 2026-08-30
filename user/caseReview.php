@@ -353,7 +353,10 @@ $reportSql = $isNationalAdmin
             r.assigned_department_id = ?
             OR (
                 r.assigned_department_id IS NULL
-                AND LOWER(r.ai_department) = LOWER(?)
+                AND (
+                    LOWER(CONVERT(r.ai_department USING utf8mb4)) COLLATE utf8mb4_unicode_ci =
+                    LOWER(CONVERT(? USING utf8mb4)) COLLATE utf8mb4_unicode_ci
+                )
             )
        )';
 
@@ -3793,7 +3796,7 @@ function openCaseModal(
                         href="../report/ReportPage.php?id=${encodeURIComponent(submission.id)}"
                     >
                         <i class="bx bx-show"></i>
-                        View
+                        ${isNationalAdmin ? 'View / Assign' : 'View'}
                     </a>
 
                     ${
@@ -4052,6 +4055,9 @@ const mapReports =
         JSON_UNESCAPED_SLASHES |
         JSON_UNESCAPED_UNICODE
     ); ?>;
+
+const isNationalAdmin =
+    <?php echo $isNationalAdmin ? 'true' : 'false'; ?>;
 
 const reportsMap =
     L.map(
