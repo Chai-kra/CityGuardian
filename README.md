@@ -18,4 +18,4 @@
     <li><b>National Admin</b> nationaladmin@cityguardian.gov.my</li>
 </ul>
 
-<p>password: 123456</p>
+<p><b>password:</b> 123456</p>
