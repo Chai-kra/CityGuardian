@@ -19,3 +19,6 @@
 </ul>
 
 <p><b>password:</b> 123456</p>
+
+<h2>User</h2>
+<p>Feel free to register your account!</p>
